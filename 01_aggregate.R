@@ -1,42 +1,18 @@
----
-title: "01_meta_analysis"
-date: "6/15/2022"
-output: html_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
-
-```{r}
-### load packages needed
-library(metafor) # this is for meta-analysis
-library(ggplot2) # this is for plotting nice figures
-```
-
-
-
-```{r}
-### read the input file that contains estimates and standard errors from states
-dd <- read.csv("data/Aim2_UDS_logistic_model_Either_UDS_v2.csv")
-
+# Data Processing 
+### input: dd
 ### state key lookup table
 state_key <- cbind(c("J", "A", "B", "C", "D", "E", "F", "K", "G", "H", "I", "L"),
                    c("DE", "KY", "MD", "MI", "NC", "OH", "PA", "TN", "VA", "WI", "WV", "ME"))
 
 state_include <- unique(dd$State) # the unique states included in this analysis
 state_key <- state_key[state_key[, 2] %in% state_include, ]
-#print(state_key)
-```
 
-```{r}
+
 ### prepare the data
 dd$Parameter <- paste0(dd$Variable, ifelse(dd$ClassVal0 == "", "", "_"), dd$ClassVal0)
 
 # create a new name for the variables for convenience
 uniqueParameter <- unique(dd$Parameter) # all unique variables
-#print(uniqueParameter) # the unique parameters in order of appearing in the data (might not be the desired order)
 uniqueParameter <- c("Intercept", "age_at_index_5yr_inc", "GENDER_M", 
                      "race_ethnic_Hispanic", "race_ethnic_Non-Hispanic black", "race_ethnic_Others",
                      "race_ethnic_Unknown/Missing",
@@ -49,27 +25,22 @@ dd$State_letter <- state_key[match(dd$State, state_key[, 2]), 1] # attach the st
 info_columns <- unique(dd[, c("order", "Variable", "ClassVal0", "Parameter", "Exclude_from_forestplot")]) # save the info columns
 p <- nrow(info_columns)
 dd <- dd[order(dd$State, dd$order), ] # ORDER by state abbreviation, then by the parameter display order
-# dd <- dd[order(dd$State_letter, dd$order), ] # OR CAN ORDER by letters
-#View(dd)
-```
 
-# Forest Plot for Each Variable
-```{r}
-  ### meta-analysis for each of the adjusted variables at a time, in a for loop
-  result_est <- c()
-  result_se <- c()
-  result_95ci_lb <- c()
-  result_95ci_ub <- c()
-  result_90pci_lb <- c()
-  result_90pci_ub <- c()
-  result_pval <- c()
-  result_tau2 <- c()
-  result_isq <- c()
-  result_Q <- c()
-  result_Qp <- c()
-  result_est_min <- c()
-  result_est_max <- c()
-  
+### meta-analysis for each of the adjusted variables at a time, in a for loop
+result_est <- c()
+result_se <- c()
+result_95ci_lb <- c()
+result_95ci_ub <- c()
+result_90pci_lb <- c()
+result_90pci_ub <- c()
+result_pval <- c()
+result_tau2 <- c()
+result_isq <- c()
+result_Q <- c()
+result_Qp <- c()
+result_est_min <- c()
+result_est_max <- c()
+
 for(i in 1:p) {
   dd_i <- dd[dd$order == i, ] # data of the corresponding parameter
   estimate <- dd_i[, "Estimate"]
@@ -77,10 +48,6 @@ for(i in 1:p) {
   state <- dd_i[, "State"]
   # issue <- dd[dd$order == i, "possible_issue_variable"] # if any marked as problematic
   keep <- (sderr != 0) & (!is.na(estimate)) # check if stderr = 0 or estimate = NA, exclude
-  #print(dd_i[, "Parameter"][1])
-  #print(rbind(state[!keep], 
-  #            estimate[!keep],
-  #            sderr[!keep])) # if there is any not to include, print to see their estimate and stderr
   
   # random effect meta-analysis by the Hartung-Knapp-Sidik-Jonkman method
   # https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/1471-2288-14-25
@@ -88,27 +55,6 @@ for(i in 1:p) {
   # meta analysis typically done on the log of the OR, log of the RR, etc
   metahksj <- rma(yi, vi, data = dat, method = "SJ", test="knha", level = 95)
   metahksj_pred90 <- predict(metahksj, level = 90)   ### prediction interval, based on T dist
-  # forest(metahksj) # default plot
-  forest(metahksj, 
-         addfit = FALSE, # set this to false to suppress global, will manually add later
-         addcred = FALSE, # set this to false to suppress global, will manually add later
-         slab = dat$state, # study label
-         ylim = c(0, metahksj$k+3),
-         rows = c((metahksj$k+1):2), # can be adjusted, height location of display [leave room for global at bottom]
-         mlab = "Summary:", 
-         xlab = dd_i[, "Parameter"][1], # x-axis label
-         psize = 0.8, # dot size
-         level = 95, # CI level
-         refline = 0, # vertical reference line
-         pch = 19, # dot shape/type
-         # transf = exp, # whether transformation of scale should be done
-         showweights = FALSE, 
-         header = c("State", "Log OR [95% CI]"), # CHECK LABEL TO BE Log OR
-         top = 2) # Plots 95% CI and 95% PI
-  addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE, 
-          # transf = exp, # whether transformation of scale should be done
-          level = 0.9, annotate = TRUE) # in this way, the CI will be 95%, the PI will be 90% [this is a work around]
-  abline(h = 1)
 
   result_est <- c(result_est, metahksj$b)
   result_se <- c(result_se, metahksj$se)
@@ -124,11 +70,8 @@ for(i in 1:p) {
   result_90pci_lb <- c(result_90pci_lb, metahksj_pred90$cr.lb)
   result_90pci_ub <- c(result_90pci_ub, metahksj_pred90$cr.ub)
 }
-```
 
-
-```{r}
-### prepare table to be printed out
+### output dataframe: outdata
 outdata <- data.frame(info_columns, 
                       estimate = result_est,
                       se = result_se,
@@ -153,21 +96,20 @@ outdata$description <- paste0("(global OR ", round(outdata$OR_estimate, 2), ", "
                               ", p", ifelse(outdata$pvalue < 0.0001, "<0.0001", paste0("=", signif(outdata$pvalue, 2))), ", ", 
                               "90% PI: ", round(outdata$OR_pci_lb, 2), "-", round(outdata$OR_pci_ub, 2),
                               ")")
-```
 
-# Population Model Plot (Log Odds)
 
-```{r}
-### FIGURE per JAMA style
+
+### output dataframe: outdata_outcome
+# FIGURE per JAMA style
 outdata_outcome <- outdata[is.na(outdata$Exclude_from_forestplot), ] # exclude some not to be plot
-#outdata_outcome$Parameter
+
 variables <- c("Age Index", "Male", "Hispanic", "Non Hisp. Black", "Other Race/Ethnicity",
                "Children", "Disabled", "Rural", "ID", "MISUD", "MEDCOMP",
                "Any OD Pre", "OD Prof Pr Dx Oud Pr", "Either UDS Pre",
                "2017", "2018", "2019")
 #cbind(outdata_outcome$Parameter, variables)
 
-### because we want to also plot reference levels, we create the data for those
+# because we want to also plot reference levels, we create the data for those
 refvariables <- c("2014 [REF]", "Non Disabled Adult [REF]", "Non Hisp. White [REF]")
 outdata_outcome <- rbind(outdata_outcome, NA, NA, NA)
 rownames(outdata_outcome) <- c(variables, refvariables)
@@ -177,9 +119,11 @@ outdata_outcome$pci_ub[is.na(outdata_outcome$pci_ub)] <- 0
 outdata_outcome$ci_lb[is.na(outdata_outcome$ci_lb)] <- 0
 outdata_outcome$ci_ub[is.na(outdata_outcome$ci_ub)] <- 0
 
+
+### output dataframe: ggplotdata
 ggplotdata <- outdata_outcome
 ggplotdata$variables <- as.factor(rownames(ggplotdata))
-levels(ggplotdata$variables)
+
 ggplotdata$variables <- factor(ggplotdata$variables,    
                                levels = c("Age Index", "Male", "Hispanic", "Non Hisp. Black", "Other Race/Ethnicity", "Children", "Disabled", "Rural", "ID", "MISUD", "MEDCOMP", "Any OD Pre",  "OD Prof Pr Dx Oud Pr", "Either UDS Pre", "2019", "2018", "2017", "2014 [REF]", "Non Disabled Adult [REF]", "Non Hisp. White [REF]"))
 
@@ -192,75 +136,18 @@ ggplotdata$variablesgroup <- as.factor(c("Age", "Sex", "Race/Ethnicity", "Race/E
 ggplotdata$variablesgroup <- factor(ggplotdata$variablesgroup,
                                     levels = c("Age", "Sex", "Race/Ethnicity", "Eligibility Group", "Region", "Year", "ID", "MISUD", "MEDCOMP", "Any OD Pre", "OD Prof Pr Dx Oud Pr", "Either UDS Pre"))
 
-### ggplot the log OR
-ggplot(ggplotdata,
-       aes(x = (estimate), y = variables, group = 1)) +
-  geom_errorbarh(height = 0.0, size = 1.8, aes(xmin = (pci_lb), xmax = (pci_ub)), colour="grey88", alpha = 0.5) +
-  geom_errorbarh(height = 0.0, size = 0.8, aes(xmin = (ci_lb), xmax = (ci_ub)), colour="grey22", alpha = 0.5) +
-  geom_point(colour = "black", size = 1.8, alpha = 1) +
-  labs(y = NULL, 
-       x = "Adjusted Log OR", ### plotting the LOG OR here
-       title = NULL) + 
-  geom_vline(xintercept = 0, linetype = "dashed", color = "blue", alpha = 0.5) +
-  # coord_trans(x = "log2") +
-  # scale_x_continuous(limits = c(0.018, 2.1),
-  #                    breaks = c(0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2), 
-  #                    label = c("0.4", "", "", "", "", "", "1", "2")) +
-  theme_bw() +  
-  theme(axis.text.y = element_text(angle = 0, hjust = 1, size = rel(1.2)),
-        axis.title.y = element_text(size = rel(1.2)),
-        strip.text.y = element_text(size = rel(0.6)),
-        axis.text.x = element_text(size = rel(1.1)),
-        axis.title.x = element_text(size = rel(1.2), hjust = 0.5),
-        plot.title = element_text(size = rel(1.2)),
-        strip.background = element_rect(fill="gray95"),
-        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
-  ) +
-  facet_grid(variablesgroup ~ ., drop = TRUE, scales = "free", space = "free")
+
+### output data: ggplot_data_long
+# integrates shiny feature: select odds or odds ratio
+ggplot_data_long <- ggplotdata%>%
+  select(order, variables, estimate, OR_estimate, ci_lb, OR_ci_lb, ci_ub, OR_ci_ub,
+         pci_lb, OR_pci_lb, pci_ub, OR_pci_ub, variablesgroup)%>%
+  gather(est, value, - c(order, variables,variablesgroup))%>%
+  mutate(odds = if_else(est %in% 
+                          c("OR_estimate","OR_ci_lb","OR_ci_ub", "OR_pci_lb","OR_pci_ub"),
+                        "odds", "log_odds"))
 
 
-
-```
-
-
-# Population Model Plot (Odds)
-```{r}
-ggplotdata$addtext <- paste0("", round(ggplotdata$OR_estimate, 2), ", ",
-                             "[", round(ggplotdata$OR_ci_lb, 2), "-", round(ggplotdata$OR_ci_ub, 2), "]")
-
-
-
-### ggplot the OR, i.e., exp(log OR)
-p <- ggplot(ggplotdata,
-            aes(x = exp(estimate), y = variables, group = 1)) +
-  geom_errorbarh(height = 0.0, size = 1.8, aes(xmin = exp(pci_lb), xmax = exp(pci_ub)), colour="grey88", alpha = 0.5) +
-  geom_errorbarh(height = 0.0, size = 0.8, aes(xmin = exp(ci_lb), xmax = exp(ci_ub)), colour="grey22", alpha = 0.5) +
-  geom_point(colour = "black", size = 1.8, alpha = 1) +
-  labs(y = NULL, 
-       x = "Adjusted OR",
-       title = NULL) + 
-  geom_vline(xintercept = 1, linetype = "dashed", color = "blue", alpha = 0.5) +
-  coord_trans(x = "log2") +
-  scale_x_continuous(limits = c(0.0001, 8), # make the x range to be wider on the left side
-    breaks = c(0.1, 0.2, 0.5, 1, 2, 4, 6),
-    label = c("0.1", "0.2", "0.5", "1", "2", "4", "6")) +
-  theme_bw() +  
-  theme(axis.text.y = element_text(angle = 0, hjust = 1, size = rel(1.2)),
-        axis.title.y = element_text(size = rel(1.2)),
-        strip.text.y = element_text(size = rel(0.6)),
-        axis.text.x = element_text(size = rel(1.1)),
-        axis.title.x = element_text(size = rel(1.2), hjust = 0.5),
-        plot.title = element_text(size = rel(1.2)),
-        strip.background = element_rect(fill="gray95"),
-        panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
-        plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
-  ) +
-  facet_grid(variablesgroup ~ ., drop = TRUE, scales = "free", space = "free")+ 
-  geom_text(aes(label = addtext, x = 0.0001), hjust = 0)+
-  geom_text(aes(label = addtext, x = 0.06), hjust = 1)+
-  geom_text(aes(label = addtext, x = 0.002), hjust = 0.5)
-
-p 
-```
+ggplot_data_long$est <- str_replace_all(ggplot_data_long$est, fixed("OR"), "")
+ggplot_data_long$est <- str_replace_all(ggplot_data_long$est, "[[:punct:]]", "")
 
