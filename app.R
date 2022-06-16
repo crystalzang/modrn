@@ -19,7 +19,7 @@ if(!require(RColorBrewer)) install.packages("RColorBrewer", repos = "http://cran
 if(!require(metafor)) install.packages("metafor", repos = "http://cran.us.r-project.org")
 
 # Data
-dd <- read.csv("data/Aim2_UDS_logistic_model_Either_UDS_v2.csv")
+dd <- read.csv("../meta_analysis_20220203_example_code/input/Aim2_UDS_logistic_model_Either_UDS_v2.csv")
 
 source("01_aggregate.R")
 
@@ -49,7 +49,8 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                  
                  # data -----------------------------------------------------------
                  tabPanel("Data",
-                        
+                       
+                          
                  ),
                  
                  # Modeling -----------------------------------------------------------
@@ -58,24 +59,30 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                    h1(strong("Modeling"), align = "center"),
                                    p("", style = "padding-top:10px;"),
                                    tabsetPanel(
-                                    
+                                    #start tab 1
                                      tabPanel("Tab 1",
                                               h3(strong(""), align = "center"),
                                               fluidRow(style='margin: 6px;',
-                                                       column(5,
+                                                       column(4,
                                                               h3(strong("Heading 1")),
-                                                              # Select type of trend to plot
-                                                              selectInput(inputId = "odds", label = strong("Odds/Odds Ratio"),
-                                                                          choices = c("odds", "log_odds"),
-                                                                          selected = "odds"),
+                                                             
                                                               h3(strong("Heading 2")),
                                                               p(""),
                                                              ),
-                                                       column(7, h3(strong("Figures")),
-                                                                      plotOutput(outputId = "plot", height = "600px")
+                                                       column(8, 
+                                                              h3(strong("Figures")),
+                                                              # Select type of trend to plot
+                                                              selectInput(inputId = "odds", label = strong("Relative Risk/Odds Ratio"),
+                                                                          choices = c( "Relative Risk" = "RR", "Odds Ratio"= "OR"),
+                                                                          selected = "RR"),
+                                                              plotlyOutput(outputId = "regressionPlot", height = 600)
                                                               )
-                                                      )
+                                                       
+                                                      ),
+                                           
+                                              
                                               ),
+                                     #start tab 2
                                      tabPanel("Tab 2",  
                                               h3(strong(""), align = "center")         
                                                     )
@@ -101,26 +108,38 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
 
 
 # server -----------------------------------------------------------
-server <- function(input, output, session) {
+server <- function(input, output, session){
   # Run JavaScript Code
   #runjs(jscode)
 
   
   ### ggplot 
-  output$plot <- renderPlotly({
-    p <-  ### ggplot the log OR
+  output$regressionPlot <- renderPlotly({
+    
+    if (input$odds == "RR"){   #log odds ratio 
+      xintercept = 0
+    }else if (input$odds == "OR"){   #odds ratio
+      xintercept = 1
+    }else{
+      xintercept = NA
+    }
+  
+    ### ggplot the log OR
+    p <- 
       ggplot_data_long%>%
-      filter(odds == input$odds)%>%
+    filter(odds == "RR")%>%
+    # filter(odds == input$odds)%>% 
       select(-c(order,odds))%>%
       spread(est, value)%>%
-      ggplot(aes(x = (estimate), y = variables, group = 1, variables=variables)) +
-      geom_errorbarh(height = 0.0, size = 1.8, aes(xmin = (pcilb), xmax = (pciub)), colour="grey88", alpha = 0.5) +
-      geom_errorbarh(height = 0.0, size = 0.8, aes(xmin = (cilb), xmax = (ciub)), colour="grey22", alpha = 0.5) +
+      ggplot(aes(x = (estimate), y = variables, group = 1, variables=variables, description = description)) +
+      geom_errorbarh(height = 0.0, size = 1.8, aes(xmin = pcilb, xmax = pciub), colour="grey88", alpha = 1) + #grey88
+      geom_errorbarh(height = 0.0, size = 0.8, aes(xmin = cilb, xmax = ciub), colour="yellow", alpha = 0.5) + #grey22
       geom_point(colour = "black", size = 1.8, alpha = 1) +
       labs(y = NULL, 
           # x = "Adjusted Log OR", ### plotting the LOG OR here
            title = NULL ) + 
-      geom_vline(xintercept = 0, linetype = "dashed", color = "blue", alpha = 0.5) +
+    #  geom_vline(xintercept = 1, linetype = "dashed", color = "blue", alpha = 0.5) +
+      geom_vline(xintercept = xintercept, linetype = "dashed", color = "blue", alpha = 0.5) +
       theme_bw() +  
       theme(axis.text.y = element_text(angle = 0, hjust = 1, size = rel(1.2)),
             axis.title.y = element_text(size = rel(1.2)),
@@ -133,13 +152,30 @@ server <- function(input, output, session) {
             plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
       ) +
       facet_grid(variablesgroup ~ ., drop = TRUE, scales = "free", space = "free")
-    ggplotly(p,tooltip =  "variables")
-    # ply <- ggplotly(p, tooltip = c("variables"))%>%
-    #   layout(legend = list(
-    #     orientation = "h"
-    #     )
-    #   )
-    # ply
+    
+    
+    if(input$odds == "RR"){
+      p <- p+
+        scale_x_continuous(
+          breaks = seq(-2, 2, by = 0.5)
+        )
+    }else if (input$odds == "OR"){
+     
+       p <- p + coord_trans(x = "log2") +
+         scale_x_continuous(limits = c(0.5, 8), # make the x range to be wider on the left side
+                           breaks = seq(0.5, 8, by = 1)
+                           #,
+                          # label = c("0.1", "0.2", "0.5", "1", "2", "4", "6")
+                          )
+      
+    }
+    
+    ply <- ggplotly(p,tooltip =  c("description"))%>%
+      layout(legend = list(
+        orientation = "h"
+      ))
+    ply
+
     
   })
 }

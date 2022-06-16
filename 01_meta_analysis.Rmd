@@ -155,8 +155,7 @@ outdata$description <- paste0("(global OR ", round(outdata$OR_estimate, 2), ", "
                               ")")
 ```
 
-# Population Model Plot (Log Odds)
-
+# Population Model Plot (log odds ratio)
 ```{r}
 ### FIGURE per JAMA style
 outdata_outcome <- outdata[is.na(outdata$Exclude_from_forestplot), ] # exclude some not to be plot
@@ -202,10 +201,6 @@ ggplot(ggplotdata,
        x = "Adjusted Log OR", ### plotting the LOG OR here
        title = NULL) + 
   geom_vline(xintercept = 0, linetype = "dashed", color = "blue", alpha = 0.5) +
-  # coord_trans(x = "log2") +
-  # scale_x_continuous(limits = c(0.018, 2.1),
-  #                    breaks = c(0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2), 
-  #                    label = c("0.4", "", "", "", "", "", "1", "2")) +
   theme_bw() +  
   theme(axis.text.y = element_text(angle = 0, hjust = 1, size = rel(1.2)),
         axis.title.y = element_text(size = rel(1.2)),
@@ -224,7 +219,7 @@ ggplot(ggplotdata,
 ```
 
 
-# Population Model Plot (Odds)
+# Population Model Plot (Odds Ratio)
 ```{r}
 ggplotdata$addtext <- paste0("", round(ggplotdata$OR_estimate, 2), ", ",
                              "[", round(ggplotdata$OR_ci_lb, 2), "-", round(ggplotdata$OR_ci_ub, 2), "]")
