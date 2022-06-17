@@ -8,18 +8,15 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
 ```{r}
 ### load packages needed
 library(metafor) # this is for meta-analysis
 library(ggplot2) # this is for plotting nice figures
 ```
 
-
-
 ```{r}
 ### read the input file that contains estimates and standard errors from states
-dd <- read.csv("data/Aim2_UDS_logistic_model_Either_UDS_v2.csv")
+dd <- read.csv("../meta_analysis_20220203_example_code/input/Aim2_UDS_logistic_model_Either_UDS_v2.csv")
 
 ### state key lookup table
 state_key <- cbind(c("J", "A", "B", "C", "D", "E", "F", "K", "G", "H", "I", "L"),
@@ -54,6 +51,7 @@ dd <- dd[order(dd$State, dd$order), ] # ORDER by state abbreviation, then by the
 ```
 
 # Forest Plot for Each Variable
+
 ```{r}
   ### meta-analysis for each of the adjusted variables at a time, in a for loop
   result_est <- c()
@@ -126,7 +124,6 @@ for(i in 1:p) {
 }
 ```
 
-
 ```{r}
 ### prepare table to be printed out
 outdata <- data.frame(info_columns, 
@@ -156,6 +153,7 @@ outdata$description <- paste0("(global OR ", round(outdata$OR_estimate, 2), ", "
 ```
 
 # Population Model Plot (log odds ratio)
+
 ```{r}
 ### FIGURE per JAMA style
 outdata_outcome <- outdata[is.na(outdata$Exclude_from_forestplot), ] # exclude some not to be plot
@@ -218,8 +216,8 @@ ggplot(ggplotdata,
 
 ```
 
-
 # Population Model Plot (Odds Ratio)
+
 ```{r}
 ggplotdata$addtext <- paste0("", round(ggplotdata$OR_estimate, 2), ", ",
                              "[", round(ggplotdata$OR_ci_lb, 2), "-", round(ggplotdata$OR_ci_ub, 2), "]")
@@ -258,4 +256,3 @@ p <- ggplot(ggplotdata,
 
 p 
 ```
-

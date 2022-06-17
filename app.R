@@ -19,6 +19,7 @@ if(!require(RColorBrewer)) install.packages("RColorBrewer", repos = "http://cran
 if(!require(metafor)) install.packages("metafor", repos = "http://cran.us.r-project.org")
 
 # Data
+## TODO: Since we are hosting data on github, please change the directory of the data.
 dd <- read.csv("../meta_analysis_20220203_example_code/input/Aim2_UDS_logistic_model_Either_UDS_v2.csv")
 
 source("01_aggregate.R")
@@ -60,7 +61,7 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                    p("", style = "padding-top:10px;"),
                                    tabsetPanel(
                                     #start tab 1
-                                     tabPanel("Tab 1",
+                                     tabPanel("Global Model",
                                               h3(strong(""), align = "center"),
                                               fluidRow(style='margin: 6px;',
                                                        column(4,
@@ -83,8 +84,12 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                               
                                               ),
                                      #start tab 2
-                                     tabPanel("Tab 2",  
-                                              h3(strong(""), align = "center")         
+                                     tabPanel("Variable Plot",  
+                                              h3(strong(""), align = "center") ,
+                                              selectInput(inputId = "var", label = strong("Variable"),
+                                                          choices = c( "Relative Risk" = "RR", "Odds Ratio"= "OR"),
+                                                          selected = "RR"),
+                                              plotlyOutput(outputId = "plot_by_variable", height = 600)
                                                     )
                                             )
                  )),
@@ -125,22 +130,19 @@ server <- function(input, output, session){
     }
   
     ### ggplot the log OR
-    p <- 
-      ggplot_data_long%>%
-    filter(odds == "RR")%>%
-    # filter(odds == input$odds)%>% 
+    p <- ggplot_data_long%>%
+      #filter(odds == "RR")%>%
+      filter(odds == input$odds)%>% 
       select(-c(order,odds))%>%
       spread(est, value)%>%
       ggplot(aes(x = (estimate), y = variables, group = 1, variables=variables, description = description)) +
       geom_errorbarh(height = 0.0, size = 1.8, aes(xmin = pcilb, xmax = pciub), colour="grey88", alpha = 1) + #grey88
-      geom_errorbarh(height = 0.0, size = 0.8, aes(xmin = cilb, xmax = ciub), colour="yellow", alpha = 0.5) + #grey22
+      geom_errorbarh(height = 0.0, size = 0.8, aes(xmin = cilb, xmax = ciub), colour="grey22", alpha = 0.5) + #grey22
       geom_point(colour = "black", size = 1.8, alpha = 1) +
-      labs(y = NULL, 
-          # x = "Adjusted Log OR", ### plotting the LOG OR here
-           title = NULL ) + 
-    #  geom_vline(xintercept = 1, linetype = "dashed", color = "blue", alpha = 0.5) +
-      geom_vline(xintercept = xintercept, linetype = "dashed", color = "blue", alpha = 0.5) +
-      theme_bw() +  
+      labs(y = NULL, title = NULL ) + 
+      #geom_vline(xintercept = 0, linetype = "dashed", color = "blue", alpha = 0.5) +
+      geom_vline(xintercept = xintercept, linetype = "dashed", color = "blue", alpha = 0.5)+
+      theme_bw() +
       theme(axis.text.y = element_text(angle = 0, hjust = 1, size = rel(1.2)),
             axis.title.y = element_text(size = rel(1.2)),
             strip.text.y = element_text(size = rel(0.6)),
@@ -148,26 +150,27 @@ server <- function(input, output, session){
             axis.title.x = element_text(size = rel(1.2), hjust = 0.5),
             plot.title = element_text(size = rel(1.2)),
             strip.background = element_rect(fill="gray95"),
-            panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+            panel.grid.major = element_blank(),
+            panel.grid.minor = element_blank(),
             plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
       ) +
       facet_grid(variablesgroup ~ ., drop = TRUE, scales = "free", space = "free")
     
     
     if(input$odds == "RR"){
-      p <- p+
+      p <- p +
         scale_x_continuous(
           breaks = seq(-2, 2, by = 0.5)
         )
     }else if (input$odds == "OR"){
-     
+
        p <- p + coord_trans(x = "log2") +
          scale_x_continuous(limits = c(0.5, 8), # make the x range to be wider on the left side
                            breaks = seq(0.5, 8, by = 1)
                            #,
                           # label = c("0.1", "0.2", "0.5", "1", "2", "4", "6")
                           )
-      
+
     }
     
     ply <- ggplotly(p,tooltip =  c("description"))%>%
@@ -177,6 +180,30 @@ server <- function(input, output, session){
     ply
 
     
+  })
+  
+  output$plot_by_variable <- renderPlot({
+    metahksj <- metahksj_ls[[var]]
+     forest(metahksj, 
+           addfit = FALSE, # set this to false to suppress global, will manually add later
+           addcred = FALSE, # set this to false to suppress global, will manually add later
+           slab = dat$state, # study label
+           ylim = c(0, metahksj$k+3),
+           rows = c((metahksj$k+1):2), # can be adjusted, height location of display [leave room for global at bottom]
+           mlab = "Summary:", 
+           xlab = dd_i[, "Parameter"][1], # x-axis label
+           psize = 0.8, # dot size
+           level = 95, # CI level
+           refline = 0, # vertical reference line
+           pch = 19, # dot shape/type
+           # transf = exp, # whether transformation of scale should be done
+           showweights = FALSE, 
+           header = c("State", "Log OR [95% CI]"), # CHECK LABEL TO BE Log OR
+           top = 2) # Plots 95% CI and 95% PI
+    addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE, 
+            # transf = exp, # whether transformation of scale should be done
+            level = 0.9, annotate = TRUE) # in this way, the CI will be 95%, the PI will be 90% [this is a work around]
+    abline(h = 1)
   })
 }
 
