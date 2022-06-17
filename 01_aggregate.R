@@ -76,29 +76,38 @@ for(i in 1:p) {
 dat_ls <- list()
 metahksj_ls <- list()
 
-names <- ggplotdata%>%
-  select(order, variables)
-for(i in 1:p) {
+
+for(i in 1:p){
   dd_i <- dd[dd$order == i, ] # data of the corresponding parameter
   estimate <- dd_i[, "Estimate"]
   sderr <- dd_i[, "StdErr"]
   state <- dd_i[, "State"]
-  # issue <- dd[dd$order == i, "possible_issue_variable"] # if any marked as problematic
   keep <- (sderr != 0) & (!is.na(estimate)) # check if stderr = 0 or estimate = NA, exclude
-  #print(dd_i[, "Parameter"][1])
-  #print(rbind(state[!keep], 
-  #            estimate[!keep],
-  #            sderr[!keep])) # if there is any not to include, print to see their estimate and stderr
-  
   # random effect meta-analysis by the Hartung-Knapp-Sidik-Jonkman method
   # https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/1471-2288-14-25
   dat <- data.frame(yi = estimate[keep], vi = sderr[keep]^2, state = state[keep])
-  dat_ls[i] <- dat
-  # meta analysis typically done on the log of the OR, log of the RR, etc
+  dat_ls[[i]] <- dat
   metahksj <- rma(yi, vi, data = dat, method = "SJ", test="knha", level = 95)
-  metahksj_ls[i] <- metahksj
+  metahksj_ls[[i]] <- metahksj
   metahksj_pred90 <- predict(metahksj, level = 90)
 }
+
+
+order <- pull(ggplotdata,order)[!is.na(pull(ggplotdata,order))]
+variable <- as.character(pull(ggplotdata, variables))
+
+var_order <- c()
+for (i in 1:max(order)){
+  if (i %in% order){
+    k = sum(is.na(var_order))
+    var_order[i] <- variable[i-k]
+  }else{
+    var_order[i] = NA
+  }
+}
+
+names(dat_ls) <- var_order
+names(metahksj_ls) <- var_order
 
 
 ### output dataframe: outdata

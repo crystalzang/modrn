@@ -55,7 +55,7 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                  ),
                  
                  # Modeling -----------------------------------------------------------
-                 tabPanel("Tab 1", value = "data",
+                 tabPanel("Model Output", value = "data",
                           fluidRow(style = "margin: 6px;",
                                    h1(strong("Modeling"), align = "center"),
                                    p("", style = "padding-top:10px;"),
@@ -86,12 +86,26 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                      #start tab 2
                                      tabPanel("Variable Plot",  
                                               h3(strong(""), align = "center") ,
-                                              selectInput(inputId = "var", label = strong("Variable"),
-                                                          choices = c( "Relative Risk" = "RR", "Odds Ratio"= "OR"),
-                                                          selected = "RR"),
-                                              plotlyOutput(outputId = "plot_by_variable", height = 600)
+                                              fluidRow(style='margin: 6px;',
+                                                       column(4,
+                                                              h3(strong("Heading 1")),
+                                                              
+                                                              h3(strong("Heading 2")),
+                                                              p(""),
+                                                       ),
+                                                       column(8, 
+                                                              h3(strong("Figures")),
+                                                              # Select type of trend to plot
+                                                              selectInput(inputId = "var", label = strong("Variable"),
+                                                                          choices = variable,
+                                                                          selected = "Age Index"),
+                                                              plotOutput(outputId = "plot_by_variable", height = 600)
+                                                            )
+                                                       
                                                     )
                                             )
+                                            
+                                    )
                  )),
                  
                  
@@ -183,15 +197,21 @@ server <- function(input, output, session){
   })
   
   output$plot_by_variable <- renderPlot({
-    metahksj <- metahksj_ls[[var]]
-     forest(metahksj, 
+  #  var = "Age Index"
+   # metahksj <- metahksj_ls[[var]]
+   # dat <- dat_ls[[var]]
+     metahksj <- metahksj_ls[[input$var]]
+     dat <- dat_ls[[input$var]]
+    
+      forest(metahksj, 
            addfit = FALSE, # set this to false to suppress global, will manually add later
            addcred = FALSE, # set this to false to suppress global, will manually add later
            slab = dat$state, # study label
            ylim = c(0, metahksj$k+3),
            rows = c((metahksj$k+1):2), # can be adjusted, height location of display [leave room for global at bottom]
            mlab = "Summary:", 
-           xlab = dd_i[, "Parameter"][1], # x-axis label
+           
+           xlab = input$var, # x-axis label
            psize = 0.8, # dot size
            level = 95, # CI level
            refline = 0, # vertical reference line
@@ -200,7 +220,7 @@ server <- function(input, output, session){
            showweights = FALSE, 
            header = c("State", "Log OR [95% CI]"), # CHECK LABEL TO BE Log OR
            top = 2) # Plots 95% CI and 95% PI
-    addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE, 
+        addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE, 
             # transf = exp, # whether transformation of scale should be done
             level = 0.9, annotate = TRUE) # in this way, the CI will be 95%, the PI will be 90% [this is a work around]
     abline(h = 1)
