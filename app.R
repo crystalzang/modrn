@@ -22,9 +22,21 @@ if(!require(metafor)) install.packages("metafor", repos = "http://cran.us.r-proj
 ## TODO: Since we are hosting data on github, please change the directory of the data.
 dd <- read.csv("../meta_analysis_20220203_example_code/input/Aim2_UDS_logistic_model_Either_UDS_v2.csv")
 
+site <- c("A", "B", "C", "D", "A", "A")
+outcome <- c(1, 0,0,0,1,1)
+var1 <- c(100, 89, 120, 91, 111, 90)
+var2 <- c("F", "M", "F", "F", "F", "M")
+var3 <- c("Level3", "Level1", "Level2", "Level2","Level1", "Level3")
+dt <- as.data.frame(cbind(site, outcome, var1,var2, var3))
+
+
 source("01_aggregate.R")
 
 variable <- as.character(pull(ggplotdata, variables))
+order <- pull(ggplotdata,order)[!is.na(pull(ggplotdata,order))]
+variable_output <- variable[1:length(order)] # these are the  that we compare their estimates across states
+variable_order <- as.data.frame(cbind(variable_output, order))
+
 
 generate_var_lists <- function(i_level){
   out_ls <- list()
@@ -78,7 +90,7 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                  tags$head(tags$style('.selectize-dropdown {z-index: 10000}')),
                  useShinyjs(),
                  
-                 # main -----------------------------------------------------------
+                 # Overview -----------------------------------------------------------
                  tabPanel("Overview", value = "overview",
                           fluidRow(style = "margin: 2px;",
                                    align = "center",
@@ -95,11 +107,24 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                    p(tags$small(em('Last updated: June 2022'))))
                  ),
                  
-                 # data -----------------------------------------------------------
+                 # Data -----------------------------------------------------------
                  tabPanel("Data",
-                       
-                          
-                 ),
+                          # fluidRow(style = "margin: 6px",
+                          #          h1(strong("Data"), align = "center"),
+                          #          p("", style = "padding-top: 10px;")
+                          #         ),
+                          fluidRow(style = "margin: 6px",
+                                   column(4, h3(strong("Example Data"), align = ""),
+                                          tableOutput('example_table')
+                                          ),
+                                   column(8,
+                                          h3(strong("Upload Your Data"), align = ""),
+                                          fileInput("upload", "Upload a file", multiple = T, accept = ".csv"),
+                                          numericInput("n", "Rows", value = 5, min = 1, step = 1),
+                                          tableOutput("uploaded_table"))
+                                     
+                                   )
+                          ),
                  
                  # Modeling -----------------------------------------------------------
                  tabPanel("Model Output", value = "data",
@@ -107,7 +132,7 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                    h1(strong("Modeling"), align = "center"),
                                    p("", style = "padding-top:10px;"),
                                    tabsetPanel(
-                                    #start tab 1
+                                    ## Global Model Plot
                                      tabPanel("Global Model",
                                               h3(strong(""), align = "center"),
                                               fluidRow(style='margin: 6px;',
@@ -120,7 +145,7 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                                        column(8, 
                                                               h3(strong("Figures")),
                                                               # Select type of trend to plot
-                                                              selectInput(inputId = "odds", label = strong("Relative Risk/Odds Ratio"),
+                                                              selectInput(inputId = "odds", label = strong("Plotting Scale"),
                                                                           choices = c( "Relative Risk" = "RR", "Odds Ratio"= "OR"),
                                                                           selected = "RR"),
                                                               plotlyOutput(outputId = "regressionPlot", height = 600)
@@ -130,7 +155,7 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                            
                                               
                                               ),
-                                     #start tab 2
+                                     ## Individual Plot
                                      tabPanel("Variable Plot",  
                                               h3(strong(""), align = "center") ,
                                               fluidRow(style='margin: 6px;',
@@ -140,22 +165,17 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                                                           choices = variable,
                                                                           selected = "Age Index"),
                                                               sliderInput(inputId = "cl",  #confidence level of estimator
-                                                                          label = div(style = "width:300px",
-                                                                                      div(style = 'float:left;', 'lower confidence'),
-                                                                                      div(style = 'float:right;', 'higher confidence')),
+                                                                          label = "Confidence Level",
                                                                           min = 0.8, max = 0.975, value = 0.95, width = '300px'
                                                               ),
                                                               sliderInput(inputId = "pcl", #prediction confidence level
-                                                                          label = div(style = "width:300px",
-                                                                                      div(style = 'float:left;', 'lower confidence'),
-                                                                                      div(style = 'float:right;', 'higher confidence')),
+                                                                          label = "Prediction Confidence Level",
                                                                           min = 0.8, max = 0.95, value = 0.90, width = '300px'
                                                               )
                                                           ),
                                                        column(8, 
-                                                              h3(strong("Figures"))
-                                                              #,
-                                                              #plotOutput(outputId = "plot_by_variable", height = 600)
+                                                              h3(strong("Figures")) ,
+                                                              plotOutput(outputId = "plot_by_variable", height = 600)
                                                             )
                                                        
                                                     )
@@ -165,7 +185,7 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                  )),
                  
                  
-                 # contact -----------------------------------------------------------
+                 # Contact -----------------------------------------------------------
                  tabPanel("Contact", value = "contact",
                           fluidRow(style = "margin-left: 100px; margin-right: 100px;",
                                    h1(strong("Contact"), align = "center"),
@@ -184,11 +204,31 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
 
 # server -----------------------------------------------------------
 server <- function(input, output, session){
-  # Run JavaScript Code
-  #runjs(jscode)
+  # Exampl data
+  output$example_table <- renderTable(dt)
+  
+  # User-uploaded data
+  data <- reactive({
+    req(input$upload)
+    
+    # Validate file formate by checking its extension
+    ext <- tools::file_ext(input$upload$name)
+    switch(ext,
+           csv = vroom::vroom(input$upload$datapath, delim = ","),
+           validate("Invalid file; Please upload a .csv file")
+    )
+  })
+  
+  # User can select how many rows they want to see
+  output$uploaded_table <- renderTable({
+    head(data(), input$n) ### TODO: Generate error message
+  })
+  
+
 
   
-  ### ggplot 
+  
+  ## ggplot 
   output$regressionPlot <- renderPlotly({
     
     if (input$odds == "RR"){   #log odds ratio 
@@ -255,11 +295,20 @@ server <- function(input, output, session){
   
   output$plot_by_variable <- renderPlot({
     
+  out <- generate_var_lists(0.95)
   out <- generate_var_lists(input$cl)
-  #out <- generate_var_lists(0.95)
-  metahksj <- out$metahksj_ls
-  dat <- out$dat_ls
-
+  
+  #var = "Male"
+  var = input$var
+  index = variable_order%>%
+    filter(variable_output == var)%>%
+    select(order)%>%
+    pull()%>%
+    as.numeric()
+  
+  dat <- out$dat_ls[[index]]
+  metahksj <- out$metahksj_ls[[index]]
+  
       forest(metahksj,
            addfit = FALSE, # set this to false to suppress global, will manually add later
            addcred = FALSE, # set this to false to suppress global, will manually add later
@@ -268,22 +317,22 @@ server <- function(input, output, session){
            rows = c((metahksj$k+1):2), # can be adjusted, height location of display [leave room for global at bottom]
            mlab = "Summary:",
 
-           xlab = input$var, # x-axis label
+           #xlab = input$var, # x-axis label
            psize = 0.8, # dot size
-           level = input$cl, # TODO: CL or PCL
-           #level = 0.95, # TODO: CL or PCL
+           #level = input$cl, # TODO: CL or PCL
+           level = 0.95, # TODO: CL or PCL
 
            refline = 0, # vertical reference line
            pch = 19, # dot shape/type
-           # transf = exp, # whether transformation of scale should be done
+           ## transf = exp, # whether transformation of scale should be done
            showweights = FALSE,
            header = c("State", "Log OR [95% CI]"), # CHECK LABEL TO BE Log OR
            top = 2) # Plots 95% CI and 95% PI
-          #addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE,    level = 0.9, annotate = TRUE)
+          addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE,    level = 0.9, annotate = TRUE)
 
-          addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE,
-             # transf = exp, # whether transformation of scale should be done
-             level = input$pcl, annotate = TRUE) # in this way, the CI will be 95%, the PI will be 90% [this is a work around]
+            #addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE,
+             ## transf = exp, # whether transformation of scale should be done
+            # level = input$pcl, annotate = TRUE) # in this way, the CI will be 95%, the PI will be 90% [this is a work around]
    abline(h = 1)
   })
 }
