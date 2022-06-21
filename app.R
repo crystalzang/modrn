@@ -24,6 +24,53 @@ dd <- read.csv("../meta_analysis_20220203_example_code/input/Aim2_UDS_logistic_m
 
 source("01_aggregate.R")
 
+variable <- as.character(pull(ggplotdata, variables))
+
+generate_var_lists <- function(i_level){
+  out_ls <- list()
+  dat_ls <- list()
+  metahksj_ls <- list()
+  order <- pull(ggplotdata,order)[!is.na(pull(ggplotdata,order))]
+  variable <- as.character(pull(ggplotdata, variables))
+  p <- max(order)
+  
+  for(i in 1:p){
+    dd_i <- dd[dd$order == i, ] # data of the corresponding parameter
+    estimate <- dd_i[, "Estimate"]
+    sderr <- dd_i[, "StdErr"]
+    state <- dd_i[, "State"]
+    keep <- (sderr != 0) & (!is.na(estimate)) # check if stderr = 0 or estimate = NA, exclude
+    # random effect meta-analysis by the Hartung-Knapp-Sidik-Jonkman method
+    # https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/1471-2288-14-25
+    dat <- data.frame(yi = estimate[keep], vi = sderr[keep]^2, state = state[keep])
+    dat_ls[[i]] <- dat
+    
+    metahksj <- rma(yi, vi, data = dat, method = "SJ", test="knha", level = i_level)
+    #metahksj <- rma(yi, vi, data = dat, method = "SJ", test="knha", level = input$cl)
+    metahksj_ls[[i]] <- metahksj
+  }
+  var_order <- c()
+  for (i in 1:max(order)){
+    if (i %in% order){
+      k = sum(is.na(var_order))
+      var_order[i] <- variable[i-k]
+    }else{
+      var_order[i] = NA
+    }
+  }
+  names(dat_ls) <- var_order
+  names(metahksj_ls) <- var_order
+  
+  
+  out_ls[[1]] <- dat_ls
+  out_ls[[2]] <- metahksj_ls
+  names(out_ls) <- c("dat_ls" , "metahksj_ls")
+   
+  return(out_ls)
+}
+
+
+
 # user -------------------------------------------------------------
 ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MODRN)",
                  selected = "overview",
@@ -88,18 +135,27 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                               h3(strong(""), align = "center") ,
                                               fluidRow(style='margin: 6px;',
                                                        column(4,
-                                                              h3(strong("Heading 1")),
-                                                              
-                                                              h3(strong("Heading 2")),
-                                                              p(""),
-                                                       ),
-                                                       column(8, 
-                                                              h3(strong("Figures")),
                                                               # Select type of trend to plot
                                                               selectInput(inputId = "var", label = strong("Variable"),
                                                                           choices = variable,
                                                                           selected = "Age Index"),
-                                                              plotOutput(outputId = "plot_by_variable", height = 600)
+                                                              sliderInput(inputId = "cl",  #confidence level of estimator
+                                                                          label = div(style = "width:300px",
+                                                                                      div(style = 'float:left;', 'lower confidence'),
+                                                                                      div(style = 'float:right;', 'higher confidence')),
+                                                                          min = 0.8, max = 0.975, value = 0.95, width = '300px'
+                                                              ),
+                                                              sliderInput(inputId = "pcl", #prediction confidence level
+                                                                          label = div(style = "width:300px",
+                                                                                      div(style = 'float:left;', 'lower confidence'),
+                                                                                      div(style = 'float:right;', 'higher confidence')),
+                                                                          min = 0.8, max = 0.95, value = 0.90, width = '300px'
+                                                              )
+                                                          ),
+                                                       column(8, 
+                                                              h3(strong("Figures"))
+                                                              #,
+                                                              #plotOutput(outputId = "plot_by_variable", height = 600)
                                                             )
                                                        
                                                     )
@@ -195,35 +251,40 @@ server <- function(input, output, session){
 
     
   })
+
   
   output$plot_by_variable <- renderPlot({
-  #  var = "Age Index"
-   # metahksj <- metahksj_ls[[var]]
-   # dat <- dat_ls[[var]]
-     metahksj <- metahksj_ls[[input$var]]
-     dat <- dat_ls[[input$var]]
     
-      forest(metahksj, 
+  out <- generate_var_lists(input$cl)
+  #out <- generate_var_lists(0.95)
+  metahksj <- out$metahksj_ls
+  dat <- out$dat_ls
+
+      forest(metahksj,
            addfit = FALSE, # set this to false to suppress global, will manually add later
            addcred = FALSE, # set this to false to suppress global, will manually add later
            slab = dat$state, # study label
            ylim = c(0, metahksj$k+3),
            rows = c((metahksj$k+1):2), # can be adjusted, height location of display [leave room for global at bottom]
-           mlab = "Summary:", 
-           
+           mlab = "Summary:",
+
            xlab = input$var, # x-axis label
            psize = 0.8, # dot size
-           level = 95, # CI level
+           level = input$cl, # TODO: CL or PCL
+           #level = 0.95, # TODO: CL or PCL
+
            refline = 0, # vertical reference line
            pch = 19, # dot shape/type
            # transf = exp, # whether transformation of scale should be done
-           showweights = FALSE, 
+           showweights = FALSE,
            header = c("State", "Log OR [95% CI]"), # CHECK LABEL TO BE Log OR
            top = 2) # Plots 95% CI and 95% PI
-        addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE, 
-            # transf = exp, # whether transformation of scale should be done
-            level = 0.9, annotate = TRUE) # in this way, the CI will be 95%, the PI will be 90% [this is a work around]
-    abline(h = 1)
+          #addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE,    level = 0.9, annotate = TRUE)
+
+          addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE,
+             # transf = exp, # whether transformation of scale should be done
+             level = input$pcl, annotate = TRUE) # in this way, the CI will be 95%, the PI will be 90% [this is a work around]
+   abline(h = 1)
   })
 }
 
