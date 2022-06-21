@@ -22,6 +22,7 @@ if(!require(metafor)) install.packages("metafor", repos = "http://cran.us.r-proj
 ## TODO: Since we are hosting data on github, please change the directory of the data.
 dd <- read.csv("../meta_analysis_20220203_example_code/input/Aim2_UDS_logistic_model_Either_UDS_v2.csv")
 
+# example upload data
 site <- c("A", "B", "C", "D", "A", "A")
 outcome <- c(1, 0,0,0,1,1)
 var1 <- c(100, 89, 120, 91, 111, 90)
@@ -32,54 +33,13 @@ dt <- as.data.frame(cbind(site, outcome, var1,var2, var3))
 
 source("01_aggregate.R")
 
-variable <- as.character(pull(ggplotdata, variables))
-order <- pull(ggplotdata,order)[!is.na(pull(ggplotdata,order))]
-variable_output <- variable[1:length(order)] # these are the  that we compare their estimates across states
-variable_order <- as.data.frame(cbind(variable_output, order))
+source("helper_figures.R")
+
+source("helper_data_prep.R")
 
 
-generate_var_lists <- function(i_level){
-  out_ls <- list()
-  dat_ls <- list()
-  metahksj_ls <- list()
-  order <- pull(ggplotdata,order)[!is.na(pull(ggplotdata,order))]
-  variable <- as.character(pull(ggplotdata, variables))
-  p <- max(order)
-  
-  for(i in 1:p){
-    dd_i <- dd[dd$order == i, ] # data of the corresponding parameter
-    estimate <- dd_i[, "Estimate"]
-    sderr <- dd_i[, "StdErr"]
-    state <- dd_i[, "State"]
-    keep <- (sderr != 0) & (!is.na(estimate)) # check if stderr = 0 or estimate = NA, exclude
-    # random effect meta-analysis by the Hartung-Knapp-Sidik-Jonkman method
-    # https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/1471-2288-14-25
-    dat <- data.frame(yi = estimate[keep], vi = sderr[keep]^2, state = state[keep])
-    dat_ls[[i]] <- dat
-    
-    metahksj <- rma(yi, vi, data = dat, method = "SJ", test="knha", level = i_level)
-    #metahksj <- rma(yi, vi, data = dat, method = "SJ", test="knha", level = input$cl)
-    metahksj_ls[[i]] <- metahksj
-  }
-  var_order <- c()
-  for (i in 1:max(order)){
-    if (i %in% order){
-      k = sum(is.na(var_order))
-      var_order[i] <- variable[i-k]
-    }else{
-      var_order[i] = NA
-    }
-  }
-  names(dat_ls) <- var_order
-  names(metahksj_ls) <- var_order
-  
-  
-  out_ls[[1]] <- dat_ls
-  out_ls[[2]] <- metahksj_ls
-  names(out_ls) <- c("dat_ls" , "metahksj_ls")
-   
-  return(out_ls)
-}
+
+
 
 
 
@@ -163,7 +123,7 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                                               # Select type of trend to plot
                                                               selectInput(inputId = "var", label = strong("Variable"),
                                                                           choices = variable,
-                                                                          selected = "Age Index"),
+                                                                          selected = "Male"),
                                                               sliderInput(inputId = "cl",  #confidence level of estimator
                                                                           label = "Confidence Level",
                                                                           min = 0.8, max = 0.975, value = 0.95, width = '300px'
@@ -221,11 +181,8 @@ server <- function(input, output, session){
   
   # User can select how many rows they want to see
   output$uploaded_table <- renderTable({
-    head(data(), input$n) ### TODO: Generate error message
+    head(data(), input$n) ### TODO: data() Generates error message
   })
-  
-
-
   
   
   ## ggplot 
@@ -295,45 +252,8 @@ server <- function(input, output, session){
   
   output$plot_by_variable <- renderPlot({
     
-  out <- generate_var_lists(0.95)
-  out <- generate_var_lists(input$cl)
-  
-  #var = "Male"
-  var = input$var
-  index = variable_order%>%
-    filter(variable_output == var)%>%
-    select(order)%>%
-    pull()%>%
-    as.numeric()
-  
-  dat <- out$dat_ls[[index]]
-  metahksj <- out$metahksj_ls[[index]]
-  
-      forest(metahksj,
-           addfit = FALSE, # set this to false to suppress global, will manually add later
-           addcred = FALSE, # set this to false to suppress global, will manually add later
-           slab = dat$state, # study label
-           ylim = c(0, metahksj$k+3),
-           rows = c((metahksj$k+1):2), # can be adjusted, height location of display [leave room for global at bottom]
-           mlab = "Summary:",
-
-           #xlab = input$var, # x-axis label
-           psize = 0.8, # dot size
-           #level = input$cl, # TODO: CL or PCL
-           level = 0.95, # TODO: CL or PCL
-
-           refline = 0, # vertical reference line
-           pch = 19, # dot shape/type
-           ## transf = exp, # whether transformation of scale should be done
-           showweights = FALSE,
-           header = c("State", "Log OR [95% CI]"), # CHECK LABEL TO BE Log OR
-           top = 2) # Plots 95% CI and 95% PI
-          addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE,    level = 0.9, annotate = TRUE)
-
-            #addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE,
-             ## transf = exp, # whether transformation of scale should be done
-            # level = input$pcl, annotate = TRUE) # in this way, the CI will be 95%, the PI will be 90% [this is a work around]
-   abline(h = 1)
+    plot_individual(ggplotdata,input$var, input$cl)
+    
   })
 }
 
