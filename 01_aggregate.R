@@ -1,11 +1,4 @@
 # Data Processing 
-### input: dd
-### state key lookup table
-state_key <- cbind(c("J", "A", "B", "C", "D", "E", "F", "K", "G", "H", "I", "L"),
-                   c("DE", "KY", "MD", "MI", "NC", "OH", "PA", "TN", "VA", "WI", "WV", "ME"))
-
-state_include <- unique(dd$State) # the unique states included in this analysis
-state_key <- state_key[state_key[, 2] %in% state_include, ]
 
 
 ### prepare the data

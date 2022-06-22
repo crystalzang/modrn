@@ -25,21 +25,18 @@ dd <- read.csv("../meta_analysis_20220203_example_code/input/Aim2_UDS_logistic_m
 # example upload data
 site <- c("A", "B", "C", "D", "A", "A")
 outcome <- c(1, 0,0,0,1,1)
-var1 <- c(100, 89, 120, 91, 111, 90)
-var2 <- c("F", "M", "F", "F", "F", "M")
-var3 <- c("Level3", "Level1", "Level2", "Level2","Level1", "Level3")
+var1 <- c(0.1, 1.2, -2.2, 0.02, -0.43, 0.03)
+var2 <- c(0.1, 1.2, -2.2, 0.02, -0.43, 0.03)
+var3 <- c(0.1, 1.2, -2.2, 0.02, -0.43, 0.03)
 dt <- as.data.frame(cbind(site, outcome, var1,var2, var3))
 
+variable <- get_variable_names(ggplotdata)
 
 source("01_aggregate.R")
 
 source("helper_figures.R")
 
 source("helper_data_prep.R")
-
-
-
-
 
 
 
