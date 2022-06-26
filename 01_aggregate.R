@@ -1,5 +1,5 @@
 # Data Processing 
-
+dd <- clean_data(dd, "State")
 
 ### prepare the data
 dd$Parameter <- paste0(dd$Variable, ifelse(dd$ClassVal0 == "", "", "_"), dd$ClassVal0)
@@ -14,10 +14,12 @@ uniqueParameter <- c("Intercept", "age_at_index_5yr_inc", "GENDER_M",
                      "any_od_preperiod_1", "op_prof_pr_dx_oud_pr_1", "either_UDS_pre_1", 
                      "index_yr_2017", "index_yr_2018", "index_yr_2019") # set the order manually
 dd$order <- as.numeric(factor(dd$Parameter, levels = uniqueParameter)) # save the parameter display order in data as a new column
-dd$State_letter <- state_key[match(dd$State, state_key[, 2]), 1] # attach the state key as a new column
+
+#info_columns would be in the output data
 info_columns <- unique(dd[, c("order", "Variable", "ClassVal0", "Parameter", "Exclude_from_forestplot")]) # save the info columns
 p <- nrow(info_columns)
-dd <- dd[order(dd$State, dd$order), ] # ORDER by state abbreviation, then by the parameter display order
+dd <- dd[order(dd$site, dd$order), ] # ORDER by state abbreviation, then by the parameter display order
+
 
 ### meta-analysis for each of the adjusted variables at a time, in a for loop
 result_est <- c()
@@ -38,7 +40,7 @@ for(i in 1:p) {
   dd_i <- dd[dd$order == i, ] # data of the corresponding parameter
   estimate <- dd_i[, "Estimate"]
   sderr <- dd_i[, "StdErr"]
-  state <- dd_i[, "State"]
+  site <- dd_i[, "Site"]
   # issue <- dd[dd$order == i, "possible_issue_variable"] # if any marked as problematic
   keep <- (sderr != 0) & (!is.na(estimate)) # check if stderr = 0 or estimate = NA, exclude
   
