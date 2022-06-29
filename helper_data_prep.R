@@ -53,7 +53,7 @@ generate_var_lists <- function(df, i_level){
 
 
 # Rename site to numbers 
-#data <- clean_data(dd, "State")
+#data <- rename_site(dd, "State")
 
 rename_site <- function(data, site){
   site_index <- grep(site, colnames(data))
@@ -74,15 +74,15 @@ rename_site <- function(data, site){
   return(data)
 }
 
-dd_out <- generate_global_estimates(dd, 0.95, 0.90)
-data = dd
-cl = 0.95
-pcl = 0.9
+#dd_out <- generate_global_estimates(dd, 0.95, 0.90)
+#data = dd
+#cl = 0.95
+#pcl = 0.9
 generate_global_estimates <- function(data, cl, pcl){
-  info_columns <- unique(data[, c("order",  "Parameter")]) # save the info columns
+  info_columns <- unique(data[, c( "order", "Parameter")]) # save the info columns
   
   
-  p = length(unique(data$order)) # order is variable
+  p = length(unique(data$order)) #number of unique variables
   result_est <- c()
   result_se <- c()
   result_ci_lb <- c()
