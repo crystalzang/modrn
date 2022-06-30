@@ -17,12 +17,11 @@ if(!require(stringr)) install.packages("stringr", repos = "http://cran.us.r-proj
 if(!require(plotly)) install.packages("plotly", repos = "http://cran.us.r-project.org")
 if(!require(RColorBrewer)) install.packages("RColorBrewer", repos = "http://cran.us.r-project.org")
 if(!require(metafor)) install.packages("metafor", repos = "http://cran.us.r-project.org")
+if(!require(vroom)) install.packages("vroom", repos = "http://cran.us.r-project.org")
+
 
 # Data
 dd <- read_rds("data/data.rds")
-
-
-
 # example upload data
 site <- c("A", "A", "A", "B", "B", "B")
 variable <- c("Var1", "Var2", "Var3", "Var1", "Var2", "Var3")
@@ -30,12 +29,12 @@ Estimate <- c(1, 0,0,0,1,1)
 StdErr <- c(0.1, 1.2, -2.2, 0.02, -0.43, 0.03)
 dt <- as.data.frame(cbind(site,variable, Estimate, StdErr))
 
-
-source("01_aggregate.R")
-
 source("helper_figures.R")
 
 source("helper_data_prep.R")
+
+source("01_aggregate.R")
+
 
 variable <- get_variable_names(dd)
 
@@ -94,17 +93,22 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                               h3(strong(""), align = "center"),
                                               fluidRow(style='margin: 6px;',
                                                        column(4,
-                                                              h3(strong("Heading 1")),
-                                                             
-                                                              h3(strong("Heading 2")),
-                                                              p(""),
+                                                              sliderInput(inputId = "cl",  #confidence level of estimator
+                                                                          label = "Confidence Level",
+                                                                          min = 0.8, max = 0.975, value = 0.95, width = '300px'
+                                                              ),
+                                                              sliderInput(inputId = "pcl", #prediction confidence level
+                                                                          label = "Prediction Confidence Level",
+                                                                          min = 0.8, max = 0.95, value = 0.90, width = '300px'
+                                                              )
                                                              ),
                                                        column(8, 
                                                               h3(strong("Figures")),
+                                                      
                                                               # Select type of trend to plot
-                                                              selectInput(inputId = "odds", label = strong("Plotting Scale"),
-                                                                          choices = c( "Relative Risk" = "RR", "Odds Ratio"= "OR"),
-                                                                          selected = "RR"),
+                                                              #selectInput(inputId = "odds", label = strong("Plotting Scale"),
+                                                              #            choices = c( "Relative Risk" = "RR", "Odds Ratio"= "OR"),
+                                                              #            selected = "RR"),
                                                               plotlyOutput(outputId = "regressionPlot", height = 600)
                                                               )
                                                        
@@ -172,6 +176,7 @@ server <- function(input, output, session){
     ext <- tools::file_ext(input$upload$name)
     switch(ext,
            csv = vroom::vroom(input$upload$datapath, delim = ","),
+           rds = 
            validate("Invalid file; Please upload a .csv file")
     )
   })
@@ -184,71 +189,10 @@ server <- function(input, output, session){
   
   ## ggplot 
   output$regressionPlot <- renderPlotly({
-    
-    if (input$odds == "RR"){   #log odds ratio 
-      xintercept = 0
-    }else if (input$odds == "OR"){   #odds ratio
-      xintercept = 1
-    }else{
-      xintercept = NA
-    }
-  
-    ### ggplot the log OR
-    p <- ggplot_data_long%>%
-      #filter(odds == "RR")%>%
-      filter(odds == input$odds)%>% 
-      select(-c(order,odds))%>%
-      spread(est, value)%>%
-      ggplot(aes(x = (estimate), y = variables, group = 1, variables=variables, description = description)) +
-      geom_errorbarh(height = 0.0, size = 1.8, aes(xmin = pcilb, xmax = pciub), colour="grey88", alpha = 1) + #grey88
-      geom_errorbarh(height = 0.0, size = 0.8, aes(xmin = cilb, xmax = ciub), colour="grey22", alpha = 0.5) + #grey22
-      geom_point(colour = "black", size = 1.8, alpha = 1) +
-      labs(y = NULL, title = NULL ) + 
-      #geom_vline(xintercept = 0, linetype = "dashed", color = "blue", alpha = 0.5) +
-      geom_vline(xintercept = xintercept, linetype = "dashed", color = "blue", alpha = 0.5)+
-      theme_bw() +
-      theme(axis.text.y = element_text(angle = 0, hjust = 1, size = rel(1.2)),
-            axis.title.y = element_text(size = rel(1.2)),
-            strip.text.y = element_text(size = rel(0.6)),
-            axis.text.x = element_text(size = rel(1.1)),
-            axis.title.x = element_text(size = rel(1.2), hjust = 0.5),
-            plot.title = element_text(size = rel(1.2)),
-            strip.background = element_rect(fill="gray95"),
-            panel.grid.major = element_blank(),
-            panel.grid.minor = element_blank(),
-            plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
-      ) +
-      facet_grid(variablesgroup ~ ., drop = TRUE, scales = "free", space = "free")
-    
-    
-    if(input$odds == "RR"){
-      p <- p +
-        scale_x_continuous(
-          breaks = seq(-2, 2, by = 0.5)
-        )
-    }else if (input$odds == "OR"){
-
-       p <- p + coord_trans(x = "log2") +
-         scale_x_continuous(limits = c(0.5, 8), # make the x range to be wider on the left side
-                           breaks = seq(0.5, 8, by = 1)
-                           #,
-                          # label = c("0.1", "0.2", "0.5", "1", "2", "4", "6")
-                          )
-
-    }
-    
-    ply <- ggplotly(p,tooltip =  c("description"))%>%
-      layout(legend = list(
-        orientation = "h"
-      ))
-    ply
-
-    
+    plot_global(dd, input$cl, input$pcl)
   })
-
   
   output$plot_by_variable <- renderPlot({
-    
     plot_individual(dd, input$var, input$cl)
     
   })

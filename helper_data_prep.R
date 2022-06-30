@@ -76,9 +76,6 @@ rename_site <- function(data, site){
 }
 
 #dd_out <- generate_global_estimates(dd, 0.95, 0.90)
-#data = dd
-#cl = 0.95
-#pcl = 0.9
 generate_global_estimates <- function(data, cl, pcl){
   info_columns <- unique(data[, c( "order", "Parameter")]) # save the info columns
   
@@ -148,4 +145,20 @@ generate_global_estimates <- function(data, cl, pcl){
                         range_ub = result_est_max)
   
   return(outdata)
+}
+
+add_desc <- function(data){
+  # descriptions
+  data$description <- paste0("(global RR ", round(data$estimate, 2), ", ",
+                                "95% CI: ", round(data$ci_lb, 2), "-", round(data$ci_ub, 2),
+                                ", p", ifelse(data$pvalue < 0.0001, "<0.0001", paste0("=", signif(data$pvalue, 2))), ", ", 
+                                "90% PI: ", round(data$pci_lb, 2), "-", round(data$pci_ub, 2),
+                                ")")
+  
+  data$description_OR <- paste0("(global OR ", round(data$OR_estimate, 2), ", ",
+                                   "95% CI: ", round(data$OR_ci_lb, 2), "-", round(data$OR_ci_ub, 2),
+                                   ", p", ifelse(data$pvalue < 0.0001, "<0.0001", paste0("=", signif(data$pvalue, 2))), ", ", 
+                                   "90% PI: ", round(data$OR_pci_lb, 2), "-", round(data$OR_pci_ub, 2),
+                                   ")")
+  return(data)
 }
