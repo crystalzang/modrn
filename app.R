@@ -19,8 +19,9 @@ if(!require(RColorBrewer)) install.packages("RColorBrewer", repos = "http://cran
 if(!require(metafor)) install.packages("metafor", repos = "http://cran.us.r-project.org")
 
 # Data
-## TODO: Since we are hosting data on github, please change the directory of the data.
-dd <- read.csv("../meta_analysis_20220203_example_code/input/Aim2_UDS_logistic_model_Either_UDS_v2.csv")
+dd <- read_rds("data/data.rds")
+
+
 
 # example upload data
 site <- c("A", "A", "A", "B", "B", "B")
@@ -29,7 +30,6 @@ Estimate <- c(1, 0,0,0,1,1)
 StdErr <- c(0.1, 1.2, -2.2, 0.02, -0.43, 0.03)
 dt <- as.data.frame(cbind(site,variable, Estimate, StdErr))
 
-variable <- get_variable_names(ggplotdata)
 
 source("01_aggregate.R")
 
@@ -37,6 +37,7 @@ source("helper_figures.R")
 
 source("helper_data_prep.R")
 
+variable <- get_variable_names(dd)
 
 
 # user -------------------------------------------------------------
@@ -248,7 +249,7 @@ server <- function(input, output, session){
   
   output$plot_by_variable <- renderPlot({
     
-    plot_individual(ggplotdata,input$var, input$cl)
+    plot_individual(dd, input$var, input$cl)
     
   })
 }

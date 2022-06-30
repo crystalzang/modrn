@@ -1,29 +1,31 @@
 #Example
-#get_variable_names(ggplotdata)
+#get_variable_names(dd)
 get_variable_names <- function(df){
-  variable <- as.character(pull(df, variables))
+  variable <- as.character(pull(df, Parameter))
+  variable <- unique(variable)
   return(variable)
 }
 
 # this function is used in helper_figure.R
 # generates estimates for each variable for each site
+# generate_var_lists(dd, i_level = 0.95)
 generate_var_lists <- function(df, i_level){
   out_ls <- list()
   dat_ls <- list()
   metahksj_ls <- list()
   order <- pull(df,order)[!is.na(pull(df,order))]
-  variable <- as.character(pull(df, variables))
+  variable <- as.character(pull(df, Parameter))
   p <- max(order)
   
   for(i in 1:p){
     dd_i <- dd[dd$order == i, ] # data of the corresponding parameter
     estimate <- dd_i[, "Estimate"]
     sderr <- dd_i[, "StdErr"]
-    state <- dd_i[, "State"]
+    site <- dd_i[, "site"]
     keep <- (sderr != 0) & (!is.na(estimate)) # check if stderr = 0 or estimate = NA, exclude
     # random effect meta-analysis by the Hartung-Knapp-Sidik-Jonkman method
     # https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/1471-2288-14-25
-    dat <- data.frame(yi = estimate[keep], vi = sderr[keep]^2, state = state[keep])
+    dat <- data.frame(yi = estimate[keep], vi = sderr[keep]^2, site = site[keep])
     dat_ls[[i]] <- dat
     
     metahksj <- rma(yi, vi, data = dat, method = "SJ", test="knha", level = i_level)
@@ -54,7 +56,6 @@ generate_var_lists <- function(df, i_level){
 
 # Rename site to numbers 
 #data <- rename_site(dd, "State")
-
 rename_site <- function(data, site){
   site_index <- grep(site, colnames(data))
   site <- pull(unique(data[site_index])) # the unique states included in this analysis
