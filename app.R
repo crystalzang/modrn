@@ -22,18 +22,17 @@ if(!require(vroom)) install.packages("vroom", repos = "http://cran.us.r-project.
 
 # Data
 dd <- read_rds("data/data.rds")
+
 # example upload data
 site <- c("A", "A", "A", "B", "B", "B")
-variable <- c("Var1", "Var2", "Var3", "Var1", "Var2", "Var3")
+Parameter <- c("Var1", "Var2", "Var3", "Var1", "Var2", "Var3")
 Estimate <- c(1, 0,0,0,1,1)
 StdErr <- c(0.1, 1.2, -2.2, 0.02, -0.43, 0.03)
-dt <- as.data.frame(cbind(site,variable, Estimate, StdErr))
+dt <- as.data.frame(cbind(site, Parameter, Estimate, StdErr))
 
 source("helper_figures.R")
 
 source("helper_data_prep.R")
-
-source("01_aggregate.R")
 
 
 variable <- get_variable_names(dd)
@@ -71,6 +70,13 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                           #         ),
                           fluidRow(style = "margin: 6px",
                                    column(4, h3(strong("Example Data"), align = ""),
+                                          p("In your uploaded data, please the following format:"),
+                                          tags$ul(
+                                            tags$li("site: indicator for the center/state where the data was originally collected."), 
+                                            tags$li("Parameter: predictors for the outcome"), 
+                                            tags$li("Estimate: estimate for the outcome in log odds ratio"),
+                                            tags$li("StdErr: standard error of the estimate")
+                                          ),
                                           tableOutput('example_table')
                                           ),
                                    column(8,
