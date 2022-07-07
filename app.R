@@ -38,6 +38,8 @@ source("helper_data_prep.R")
 variable <- get_variable_names(dd)
 
 
+
+
 # user -------------------------------------------------------------
 ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MODRN)",
                  selected = "overview",
@@ -81,9 +83,9 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                           ),
                                    column(8,
                                           h3(strong("Upload Your Data"), align = ""),
-                                          fileInput("upload", "Upload a file", multiple = T, accept = ".csv"),
+                                          fileInput("upload", "Upload a file", multiple = F, accept = ".csv"),
                                           numericInput("n", "Rows", value = 5, min = 1, step = 1),
-                                          tableOutput("uploaded_table"))
+                                          tableOutput("data_upload"))
                                      
                                    )
                           ),
@@ -105,7 +107,7 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                                               ),
                                                               sliderInput(inputId = "pcl", #prediction confidence level
                                                                           label = "Prediction Confidence Level",
-                                                                          min = 0.8, max = 0.95, value = 0.90, width = '300px'
+                                                                          min = 0.8, max = 0.975, value = 0.90, width = '300px'
                                                               )
                                                              ),
                                                        column(8, 
@@ -142,7 +144,29 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                                             )
                                                        
                                                     )
-                                            )
+                                            ),
+                                     ## Export
+                                     tabPanel("Export",  
+                                              h3(strong(""), align = "center") ,
+                                              fluidRow(style='margin: 6px;',
+                                                       column(4,
+                                                              # Select type of trend to plot
+                                                              selectInput(inputId = "var", label = strong("Variable"),
+                                                                          choices = variable,
+                                                                          selected = "param_1"),
+                                                              sliderInput(inputId = "cl",  #confidence level of estimator
+                                                                          label = "Confidence Level",
+                                                                          min = 0.8, max = 0.975, value = 0.95, width = '300px'
+                                                              )
+                                                       ),
+                                                       column(8, 
+                                                              h3(strong("Export Model Output")),
+                                                             # selectInput("dataset", "Select a dataoutput",ls("package:datasets")),
+                                                             dataTableOutput("data_output")
+                                                       )
+                                                       
+                                              )
+                                     )
                                             
                                     )
                  )),
@@ -178,26 +202,39 @@ server <- function(input, output, session){
     ext <- tools::file_ext(input$upload$name)
     switch(ext,
            csv = vroom::vroom(input$upload$datapath, delim = ","),
-           rds = 
            validate("Invalid file; Please upload a .csv file")
     )
   })
-  
+
   # User can select how many rows they want to see
-  output$uploaded_table <- renderTable({
+  output$data_upload <- renderTable({
     head(data(), input$n) ### TODO: data() Generates error message
   })
   
   
   ## ggplot 
   output$regressionPlot <- renderPlotly({
-    plot_global(dd, input$cl, input$pcl)
+    plot_global(dd, input$cl, input$pcl)    
+    
   })
   
   output$plot_by_variable <- renderPlot({
     plot_individual(dd, input$var, input$cl)
     
   })
+  
+  output$data_output <- renderDataTable(
+    #output global results
+    
+    generate_global_estimates(dd, input$cl, input$pcl)%>%
+      datatable(
+      extensions="Buttons", options = list(
+        dom = "Bfrtip",
+        buttons = c("copy", "csv", "excel", "pdf", "print")
+      )
+    )
+  )
+  
 }
 
 shinyApp(ui = ui, server = server)
