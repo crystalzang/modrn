@@ -15,7 +15,7 @@ plot_individual <- function(data, var, cl){
   out <- generate_var_lists(data, cl)
   metahksj <- out$metahksj_ls[[index]]
   forest(metahksj,
-         level =cl) # TODO: CL or PCL
+         level = cl) # TODO: CL or PCL
 }
 
 #odds = "RR" if unit is log odds ratio

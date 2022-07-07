@@ -130,14 +130,10 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                                               # Select type of trend to plot
                                                               selectInput(inputId = "var", label = strong("Variable"),
                                                                           choices = variable,
-                                                                          selected = "Male"),
+                                                                          selected = "param_1"),
                                                               sliderInput(inputId = "cl",  #confidence level of estimator
                                                                           label = "Confidence Level",
                                                                           min = 0.8, max = 0.975, value = 0.95, width = '300px'
-                                                              ),
-                                                              sliderInput(inputId = "pcl", #prediction confidence level
-                                                                          label = "Prediction Confidence Level",
-                                                                          min = 0.8, max = 0.95, value = 0.90, width = '300px'
                                                               )
                                                           ),
                                                        column(8, 
