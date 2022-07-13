@@ -144,6 +144,7 @@ generate_global_estimates <- function(data, cl, pcl){
                         range_lb = result_est_min,
                         range_ub = result_est_max)
   
+  rownames(outdata) <- NULL
   return(outdata)
 }
 

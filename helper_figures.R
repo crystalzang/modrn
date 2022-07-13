@@ -1,11 +1,16 @@
 #Example: 
 #plot_individual(dd,"param_1", 0.95)
-
-plot_individual <- function(data, var, cl){
+# data <- dd
+# var = "param_1"
+# cl = pcl = 0.95
+plot_individual <- function(data, var, cl, pcl){
   variable <- as.character(pull(data, Parameter))
-  order <- unique(pull(data,order)[!is.na(pull(data, order))])
+
+  order <- unique(pull(data, order)[!is.na(pull(data, order))])
   variable_output <- variable[1:length(order)] # these are the  that we compare their estimates across states
   variable_order <- as.data.frame(cbind(variable_output, order))
+  
+  site <- unique(as.character(pull(data, site)))
   
   index = variable_order%>%
     filter(variable_output == var)%>%
@@ -14,19 +19,37 @@ plot_individual <- function(data, var, cl){
     as.numeric()
   out <- generate_var_lists(data, cl)
   metahksj <- out$metahksj_ls[[index]]
-  forest(metahksj,
-         level = cl) # TODO: CL or PCL
+  
+  forest(metahksj, 
+         addfit = FALSE, # set this to false to suppress global, will manually add later
+         addcred = FALSE, # set this to false to suppress global, will manually add later
+         slab = site, # study label
+         ylim = c(0, metahksj$k+3),
+         rows = c((metahksj$k+1):2), # can be adjusted, height location of display [leave room for global at bottom]
+         mlab = "Summary:", 
+        # xlab = dd_i[, "Parameter"][1], # x-axis label
+         xlab = var,
+         psize = 0.8, # dot size
+         level = cl, # CI level
+         refline = 0, # vertical reference line
+         pch = 19, # dot shape/type
+         # transf = exp, # whether transformation of scale should be done
+         showweights = FALSE, 
+         header = c("Site", "Log OR [95% CI]"), # CHECK LABEL TO BE Log OR
+         top = 2) # Plots 95% CI and 95% PI
+  addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE, 
+          # transf = exp, # whether transformation of scale should be done
+          level = pcl, annotate = TRUE) # in this way, the CI will be 95%, the PI will be 90% [this is a work around]
+  abline(h = 1)
 }
 
 #odds = "RR" if unit is log odds ratio
 #odds = "OR" if unit is odds ratio
-data <- dd
-cl = 0.95
-pcl = 0.90
-plot_global <- function(data, cl, pcl){
-  odds = "RR"
+
+plot_global <- function(data, cl, pcl, scale){
   data <- generate_global_estimates(data, cl, pcl)
   data <- add_desc(data)
+  
   
   ggplot_data_long <- data%>%
     select(order, Parameter, estimate, OR_estimate, ci_lb, OR_ci_lb, ci_ub, OR_ci_ub,
@@ -43,10 +66,16 @@ plot_global <- function(data, cl, pcl){
   
   ggplot_data_long$est <- str_replace_all(ggplot_data_long$est, fixed("OR"), "")
   ggplot_data_long$est <- str_replace_all(ggplot_data_long$est, "[[:punct:]]", "")
+ 
+
+  order <- get_variable_names(dd)
+  f <- factor(ggplot_data_long$Parameter, level = order)
+  ggplot_data_long$Parameter <- fct_rev(f)
+  #levels(ggplot_data_long$Parameter)
   
-  if (odds == "RR"){   #log odds ratio 
+  if (scale == "RR"){   #log odds ratio 
     xintercept = 0
-  }else if (odds == "OR"){   #odds ratio
+  }else if (scale == "OR"){   #odds ratio
     xintercept = 1
   }else{
     return("Error: No odds unit selection.")
@@ -54,8 +83,8 @@ plot_global <- function(data, cl, pcl){
   
   ### ggplot the log OR
   p <- ggplot_data_long%>%
-    filter(odds == "RR")%>% 
-    select(-c(order,odds))%>%
+    filter(odds ==  scale)%>% 
+    select(-c(order, odds))%>%
     spread(est, value)%>%
     ggplot(aes(x = (estimate), y = Parameter, group = 1)) +
     geom_errorbarh(height = 0.0, size = 1.8, aes(xmin = pcilb, xmax = pciub), colour="grey88", alpha = 1) + #grey88
@@ -76,20 +105,22 @@ plot_global <- function(data, cl, pcl){
           panel.grid.minor = element_blank(),
           plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
     ) 
-  if(odds == "RR"){
+  if(scale == "RR"){
     p <- p +
       scale_x_continuous(
         breaks = seq(-2, 2, by = 0.5)
-      )
-  }else if (odds == "OR"){
+      )+
+      labs(x = "Estimate(odds ratio)")
+  }else if (scale == "OR"){
     
-    p <- p + coord_trans(x = "log2") +
-      scale_x_continuous(limits = c(0.5, 8), # make the x range to be wider on the left side
-                         breaks = seq(0.5, 8, by = 1)
+    p <- p + coord_trans(x = "log2")+
+      scale_x_continuous(
+          limits = c(0, 18), # make the x range to be wider on the left side
+                         breaks = seq(4, 10, by = 2)+
+      labs(x = "Estimate(log odds ratio)")
       )
     
   }
-  
   # ply <- ggplotly(p, tooltip =  c("description"))%>%
   #   layout(legend = list(
   #     orientation = "h"

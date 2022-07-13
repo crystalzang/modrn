@@ -108,15 +108,14 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                                               sliderInput(inputId = "pcl", #prediction confidence level
                                                                           label = "Prediction Confidence Level",
                                                                           min = 0.8, max = 0.975, value = 0.90, width = '300px'
-                                                              )
+                                                              ),
+                                                              # Select type of trend to plot
+                                                              selectInput(inputId = "scale", label = strong("Plotting Scale"),
+                                                                          choices = c( "Odds Ratio" = "RR", "Log Odds"= "OR"),
+                                                                          selected = "RR")
                                                              ),
                                                        column(8, 
                                                               h3(strong("Figures")),
-                                                      
-                                                              # Select type of trend to plot
-                                                              #selectInput(inputId = "odds", label = strong("Plotting Scale"),
-                                                              #            choices = c( "Relative Risk" = "RR", "Odds Ratio"= "OR"),
-                                                              #            selected = "RR"),
                                                               plotlyOutput(outputId = "regressionPlot", height = 600)
                                                               )
                                                        
@@ -133,9 +132,13 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                                               selectInput(inputId = "var", label = strong("Variable"),
                                                                           choices = variable,
                                                                           selected = "param_1"),
-                                                              sliderInput(inputId = "cl",  #confidence level of estimator
+                                                              sliderInput(inputId = "cl_2",  #confidence level of estimator
                                                                           label = "Confidence Level",
                                                                           min = 0.8, max = 0.975, value = 0.95, width = '300px'
+                                                              ),
+                                                              sliderInput(inputId = "pcl_2", #prediction confidence level
+                                                                          label = "Prediction Confidence Level",
+                                                                          min = 0.8, max = 0.975, value = 0.90, width = '300px'
                                                               )
                                                           ),
                                                        column(8, 
@@ -154,13 +157,18 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                                               selectInput(inputId = "var", label = strong("Variable"),
                                                                           choices = variable,
                                                                           selected = "param_1"),
-                                                              sliderInput(inputId = "cl",  #confidence level of estimator
+                                                              sliderInput(inputId = "cl_3",  #confidence level of estimator
                                                                           label = "Confidence Level",
                                                                           min = 0.8, max = 0.975, value = 0.95, width = '300px'
+                                                              ),
+                                                              sliderInput(inputId = "pcl_3", #prediction confidence level
+                                                                          label = "Prediction Confidence Level",
+                                                                          min = 0.8, max = 0.975, value = 0.90, width = '300px'
                                                               )
                                                        ),
                                                        column(8, 
                                                               h3(strong("Export Model Output")),
+                                                              p("Use Shift/Ctrl + Click for selecting/deselect multiple columns"),
                                                              # selectInput("dataset", "Select a dataoutput",ls("package:datasets")),
                                                              dataTableOutput("data_output")
                                                        )
@@ -191,7 +199,7 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
 
 # server -----------------------------------------------------------
 server <- function(input, output, session){
-  # Exampl data
+  # Example data
   output$example_table <- renderTable(dt)
   
   # User-uploaded data
@@ -214,23 +222,23 @@ server <- function(input, output, session){
   
   ## ggplot 
   output$regressionPlot <- renderPlotly({
-    plot_global(dd, input$cl, input$pcl)    
+    plot_global(dd, input$cl, input$pcl, input$scale)    
     
   })
   
   output$plot_by_variable <- renderPlot({
-    plot_individual(dd, input$var, input$cl)
-    
+    plot_individual(dd, input$var, cl = input$cl_2, pcl= input$pcl_2)
   })
   
   output$data_output <- renderDataTable(
     #output global results
     
-    generate_global_estimates(dd, input$cl, input$pcl)%>%
+    generate_global_estimates(dd, input$cl_3, input$pcl_3)%>%
       datatable(
-      extensions="Buttons", options = list(
+      extensions=c("Select", "Buttons"), options = list(
+        select = list(style = "os", items = "row"),
         dom = "Bfrtip",
-        buttons = c("copy", "csv", "excel", "pdf", "print")
+        buttons = c("selectAll","selectNone", "selectColumns","copy", "csv", "excel", "pdf", "print")
       )
     )
   )
