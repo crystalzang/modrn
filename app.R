@@ -170,7 +170,9 @@ ui <- navbarPage(title = "Online Random Effect Meta-Analysis Calculator",
                                                           ),
                                                        column(8, 
                                                               h3(strong("Figures")) ,
-                                                              plotOutput(outputId = "plot_by_variable", height = 600)
+                                                              plotOutput(outputId = "plot_by_variable", height = 600),
+                                                              h3(strong("Export")) ,
+                                                              downloadButton( "plot_by_variable_export", "Export All Plots")
                                                             )
                                                        
                                                     )
@@ -239,6 +241,7 @@ server <- function(input, output, session){
   # User can select how many rows they want to see
   output$data_upload <- renderTable({
     head(data(), input$n) ### TODO: data() Generates error message
+ 
   })
   
   
@@ -263,6 +266,15 @@ server <- function(input, output, session){
         buttons = c("selectAll","selectNone", "selectColumns","copy", "csv", "excel", "pdf", "print")
       )
     )
+  )
+  
+  output$plot_by_variable_export <- downloadHandler(
+    plot_individual_export(dd, input$cl_2),
+    
+    filename = "MA_Forest_Plots.pdf",
+    content = function(file) {
+      file.copy("www/MA_Forest_Plots.pdf", file)
+    }
   )
   
 }

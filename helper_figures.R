@@ -42,6 +42,22 @@ plot_individual <- function(data, var, cl, pcl){
           level = pcl, annotate = TRUE) # in this way, the CI will be 95%, the PI will be 90% [this is a work around]
   abline(h = 1)
 }
+#plot_individual_export(dd, 0.95)
+plot_individual_export <- function(data, cl){
+  pdf(file = paste0("www/MA_Forest_Plots.pdf"), # START saving plots in a pdf file
+      width = 8.5, # width of the plot in inches
+      height = 11) # height of the plot in inches
+  par(mfrow=c(6, 3), # plotting options: each page has 6 rows and 3 columns, 18 sub-figures on a page; 
+      mar = c(4, 3, 1, 2)) # mar sets the margin sizes in the following order: bottom, left, top, and right
+  
+  variable <- get_variable_names(data)
+  
+  for(var in variable){
+    plot_individual(data,var, cl)
+  }
+  dev.off() # END saving plots in a pdf file
+  par(mfrow=c(1,1)) # reset plotting options
+}
 
 #odds = "RR" if unit is log odds ratio
 #odds = "OR" if unit is odds ratio
