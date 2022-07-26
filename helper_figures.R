@@ -45,11 +45,12 @@ plot_individual <- function(data, var, cl, pcl){
 
 #odds = "RR" if unit is log odds ratio
 #odds = "OR" if unit is odds ratio
-
+#data = dd
+#scale = "OR"
+#plot_global(dd, 0.95,0.95, "logOR")
 plot_global <- function(data, cl, pcl, scale){
   data <- generate_global_estimates(data, cl, pcl)
   data <- add_desc(data)
-  
   
   ggplot_data_long <- data%>%
     select(order, Parameter, estimate, OR_estimate, ci_lb, OR_ci_lb, ci_ub, OR_ci_ub,
@@ -57,9 +58,9 @@ plot_global <- function(data, cl, pcl, scale){
     gather(est, value, - c(order, Parameter, description_OR, description ))%>%
     mutate(odds.1 = if_else(est %in% 
                               c("OR_estimate","OR_ci_lb","OR_ci_ub", "OR_pci_lb","OR_pci_ub"),
-                            "OR", "RR"))%>%
+                            "OR", "logOR"))%>%
     gather(type, description , - c(order, Parameter, est, value,odds.1))%>%
-    mutate(odds.2 = if_else(type == "description_OR","OR","RR"))%>%
+    mutate(odds.2 = if_else(type == "description_OR","OR","logOR"))%>%
     filter(odds.1 == odds.2)%>%
     select(-c(odds.2, type))%>%
     rename( odds =odds.1)
@@ -73,10 +74,10 @@ plot_global <- function(data, cl, pcl, scale){
   ggplot_data_long$Parameter <- fct_rev(f)
   #levels(ggplot_data_long$Parameter)
   
-  if (scale == "RR"){   #log odds ratio 
-    xintercept = 0
-  }else if (scale == "OR"){   #odds ratio
+  if (scale == "OR"){   #log odds ratio 
     xintercept = 1
+  }else if (scale == "logOR"){   #odds ratio
+    xintercept = 0
   }else{
     return("Error: No odds unit selection.")
   }
@@ -105,22 +106,21 @@ plot_global <- function(data, cl, pcl, scale){
           panel.grid.minor = element_blank(),
           plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm")
     ) 
-  if(scale == "RR"){
+  if(scale == "logOR"){
     p <- p +
       scale_x_continuous(
         breaks = seq(-2, 2, by = 0.5)
       )+
-      labs(x = "Estimate(odds ratio)")
-  }else if (scale == "OR"){
-    
-    p <- p + coord_trans(x = "log2")+
-      scale_x_continuous(
-          limits = c(0, 18), # make the x range to be wider on the left side
-                         breaks = seq(4, 10, by = 2)+
       labs(x = "Estimate(log odds ratio)")
-      )
-    
+  }else if (scale == "OR"){
+    p <- p + 
+      #coord_trans(x = "log2")+
+      scale_x_continuous(
+          limits = c(0, 10), # make the x range to be wider on the left side
+                         breaks = seq(0, 8, by = 1))+
+      labs(x = "Estimate(odds ratio)")
   }
+  
   # ply <- ggplotly(p, tooltip =  c("description"))%>%
   #   layout(legend = list(
   #     orientation = "h"

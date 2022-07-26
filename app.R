@@ -41,7 +41,7 @@ variable <- get_variable_names(dd)
 
 
 # user -------------------------------------------------------------
-ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MODRN)",
+ui <- navbarPage(title = "Online Random Effect Meta-Analysis Calculator",
                  selected = "overview",
                  theme = shinytheme("lumen"),
                  tags$head(tags$style('.selectize-dropdown {z-index: 10000}')),
@@ -52,16 +52,43 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                           fluidRow(style = "margin: 2px;",
                                    align = "center",
                                    br(""),
-                                   h1(strong("Title One"),
+                                   h1(strong("Online Random Effect Meta-Analysis Calculator"),
                                       br(""),
-                                      h4("Title Two"),
-                                      h4("Title Three"),
-                                      h4("Title Four"),
+                                      h2("Background"),
+                                      p("This R Shiny online calculator performs a random effects meta-analysis using 
+                                      the Hartung-Knapp-Sidik-Jonkman method and provide convenient visualization and 
+                                      downloadable output summaries. Estimates from individual sites are combined to 
+                                      produce pooled estimates. The required inputs are the site-specific estimates 
+                                      for a single or multiple parameters, their standard errors, and columns that 
+                                      identifies the site and the parameter. A sample input is provided under the 
+                                      XXX tab. Important outputs include the pooled estimates along with confidence
+                                      intervals (CI). In addition, it generates prediction intervals (PI) around the 
+                                      pooled estimates, which represent the interval we would expect to contain the 
+                                      estimates if the analysis had been conducted with a different sample of states. 
+                                      The confidence level of the CI and PI can be separately specified and modified 
+                                      via slider controls. "),
+                                      
+
+
+                                      h2("Title Three"),
+                                      p("The calculation is based on the R package metafor (Viechtbauer, 2010). Plots are produced in R using ggplot2. "),
+
+                                      h2("Legal Disclaimer"),
+                                      p("The online meta-analysis calculator is strictly a research tool.
+                                        Our team has made every attempt to ensure the accuracy and reliability
+                                        of the information provided by this software. However, the information 
+                                        is provided 'as is' without warranty of any kind. Neither Pitt nor the 
+                                        investigators accept any responsibility or liability for the accuracy, 
+                                        content, completeness, legality, or reliability of the information provided 
+                                        by this software. No warranties, promises and/or representations of any 
+                                        kind, expressed or implied, are given as to the nature, standard, accuracy 
+                                        or otherwise of the information provided by the software nor to the suitability
+                                        or otherwise of the information to your particular circumstances."),
                                       br()
                                    )
                           ),
                           fluidRow(align = "center",
-                                   p(tags$small(em('Last updated: June 2022'))))
+                                   p(tags$small(em('Last updated: July 2022'))))
                  ),
                  
                  # Data -----------------------------------------------------------
@@ -111,8 +138,8 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                                               ),
                                                               # Select type of trend to plot
                                                               selectInput(inputId = "scale", label = strong("Plotting Scale"),
-                                                                          choices = c( "Odds Ratio" = "RR", "Log Odds"= "OR"),
-                                                                          selected = "RR")
+                                                                          choices = c( "Odds Ratio" = "OR", "Log Odds Ratio"= "logOR"),
+                                                                          selected = "logOR")
                                                              ),
                                                        column(8, 
                                                               h3(strong("Figures")),
@@ -153,18 +180,10 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                                               h3(strong(""), align = "center") ,
                                               fluidRow(style='margin: 6px;',
                                                        column(4,
-                                                              # Select type of trend to plot
-                                                              selectInput(inputId = "var", label = strong("Variable"),
-                                                                          choices = variable,
-                                                                          selected = "param_1"),
-                                                              sliderInput(inputId = "cl_3",  #confidence level of estimator
-                                                                          label = "Confidence Level",
-                                                                          min = 0.8, max = 0.975, value = 0.95, width = '300px'
-                                                              ),
-                                                              sliderInput(inputId = "pcl_3", #prediction confidence level
-                                                                          label = "Prediction Confidence Level",
-                                                                          min = 0.8, max = 0.975, value = 0.90, width = '300px'
-                                                              )
+                                                              numericInput("cl_3", "Confidence Level:", 0.95, min = 0.8, max = 0.99),
+                                                              #verbatimTextOutput("value_cl"),
+                                                              numericInput("pcl_3", "Prediction Confidence Level:", 0.95, min = 0.8, max = 0.99)
+                                                              #verbatimTextOutput("value_pcl")
                                                        ),
                                                        column(8, 
                                                               h3(strong("Export Model Output")),
@@ -185,7 +204,7 @@ ui <- navbarPage(title = "The Medicaid Outcomes Distributed Research Network (MO
                           fluidRow(style = "margin-left: 100px; margin-right: 100px;",
                                    h1(strong("Contact"), align = "center"),
                                    br(),
-                                   h4(strong("UVA Data Science for the Public Good")),
+                                   h4(strong("University of Pittsburgh School of Public Health")),
                                    p("The", a(href = 'https://biocomplexity.virginia.edu/social-decision-analytics/dspg-program', 'Data Science for the Public Good (DSPG) Young Scholars program', target = "_blank"), 
                                      "is a summer immersive program held at the", a(href = 'https://biocomplexity.virginia.edu/social-decision-analytics', 'University of Virginia Biocomplexity Institute’s Social and Decision Analytics division (SDAD).'), 
                                      "In its seventh year, the program engages students from across the country to work together on projects that address state, federal, and local government challenges around 
@@ -214,6 +233,9 @@ server <- function(input, output, session){
     )
   })
 
+  output$value_cl <- renderText({ input$cl_3})
+  output$value_pcl <- renderText({ input$pcl_3})
+  
   # User can select how many rows they want to see
   output$data_upload <- renderTable({
     head(data(), input$n) ### TODO: data() Generates error message

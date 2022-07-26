@@ -61,7 +61,6 @@ rename_site <- function(data, site){
   site <- pull(unique(data[site_index])) # the unique states included in this analysis
   k <- length(site) #Number of unique sites
   colnames(data)[site_index] <- "site"
-  
   set.seed(1)
   key = sample(k)
   
@@ -150,7 +149,7 @@ generate_global_estimates <- function(data, cl, pcl){
 
 add_desc <- function(data){
   # descriptions
-  data$description <- paste0("(global RR ", round(data$estimate, 2), ", ",
+  data$description <- paste0("(global log OR ", round(data$estimate, 2), ", ",
                                 "95% CI: ", round(data$ci_lb, 2), "-", round(data$ci_ub, 2),
                                 ", p", ifelse(data$pvalue < 0.0001, "<0.0001", paste0("=", signif(data$pvalue, 2))), ", ", 
                                 "90% PI: ", round(data$pci_lb, 2), "-", round(data$pci_ub, 2),
