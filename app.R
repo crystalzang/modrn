@@ -22,6 +22,7 @@ if(!require(vroom)) install.packages("vroom", repos = "http://cran.us.r-project.
 
 # Data
 dd <- read_rds("data/data.rds")
+#dd <- read_csv("data/data.csv")
 
 # example upload data
 site <- c("A", "A", "A", "B", "B", "B")
@@ -35,13 +36,15 @@ source("helper_figures.R")
 source("helper_data_prep.R")
 
 
-variable <- get_variable_names(dd)
 
 
 
 
 # user -------------------------------------------------------------
-ui <- navbarPage(title = "Online Random Effect Meta-Analysis Calculator",
+ui <- 
+  navbarPage(
+   # theme = shinythemes::shinytheme("journal"),
+    title = "Online Random Effect Meta-Analysis Calculator",
                  selected = "overview",
                  theme = shinytheme("lumen"),
                  tags$head(tags$style('.selectize-dropdown {z-index: 10000}')),
@@ -88,7 +91,7 @@ ui <- navbarPage(title = "Online Random Effect Meta-Analysis Calculator",
                                    )
                           ),
                           fluidRow(align = "center",
-                                   p(tags$small(em('Last updated: July 2022'))))
+                                   p(tags$small(em('Last updated: Aug 2022'))))
                  ),
                  
                  # Data -----------------------------------------------------------
@@ -110,9 +113,9 @@ ui <- navbarPage(title = "Online Random Effect Meta-Analysis Calculator",
                                           ),
                                    column(8,
                                           h3(strong("Upload Your Data"), align = ""),
-                                          fileInput("upload", "Upload a file", multiple = F, accept = ".csv"),
-                                          numericInput("n", "Rows", value = 5, min = 1, step = 1),
-                                          tableOutput("data_upload"))
+                                          fileInput(inputId="upload", label="Upload a file", multiple = F, accept = ".csv"), #other tabs can access this data using inputId
+                                           dataTableOutput("data_upload")
+                                         )
                                      
                                    )
                           ),
@@ -143,7 +146,7 @@ ui <- navbarPage(title = "Online Random Effect Meta-Analysis Calculator",
                                                              ),
                                                        column(8, 
                                                               h3(strong("Figures")),
-                                                              plotlyOutput(outputId = "regressionPlot", height = 600)
+                                                              plotlyOutput(outputId = "globalPlot", height = 600)
                                                               )
                                                        
                                                       ),
@@ -156,9 +159,11 @@ ui <- navbarPage(title = "Online Random Effect Meta-Analysis Calculator",
                                               fluidRow(style='margin: 6px;',
                                                        column(4,
                                                               # Select type of trend to plot
-                                                              selectInput(inputId = "var", label = strong("Variable"),
-                                                                          choices = variable,
-                                                                          selected = "param_1"),
+                                                              # selectInput(inputId = "var", label = strong("Variable"),
+                                                              #           # choices = get_variable_names(input$upload),
+                                                              #             choices = XXX, #todo
+                                                              #             selected = "param_1"),
+                                                              uiOutput("param_selection"), #widget for parameter selection
                                                               sliderInput(inputId = "cl_2",  #confidence level of estimator
                                                                           label = "Confidence Level",
                                                                           min = 0.8, max = 0.975, value = 0.95, width = '300px'
@@ -218,6 +223,7 @@ ui <- navbarPage(title = "Online Random Effect Meta-Analysis Calculator",
                 ))
 
 
+
 # server -----------------------------------------------------------
 server <- function(input, output, session){
   # Example data
@@ -225,6 +231,7 @@ server <- function(input, output, session){
   
   # User-uploaded data
   data <- reactive({
+    #make sure dataset is uploaded
     req(input$upload)
     
     # Validate file formate by checking its extension
@@ -238,27 +245,38 @@ server <- function(input, output, session){
   output$value_cl <- renderText({ input$cl_3})
   output$value_pcl <- renderText({ input$pcl_3})
   
-  # User can select how many rows they want to see
-  output$data_upload <- renderTable({
-    head(data(), input$n) ### TODO: data() Generates error message
- 
+  # preview uploaded dataset
+  output$data_upload <- renderDataTable(
+    data()
+  )
+  
+
+  # 1. global plot 
+  output$globalPlot <- renderPlotly({
+    plot_global(get(input$upload), input$cl, input$pcl, input$scale)    
   })
   
+  # 2.individual plot depend on the selected parameter
   
-  ## ggplot 
-  output$regressionPlot <- renderPlotly({
-    plot_global(dd, input$cl, input$pcl, input$scale)    
-    
+  # variable selection from the uploaded dataset
+  # in the rest of server, var() can be used as a function that returns a vector of parameter names 
+  var <- reactive({
+    data <- get(input$upload)
+    # get_variable_names(mydata)
+    get_variable_names(data)
+  })
+  
+  output$param_selection <- renderUI({
+    selectInput("var_selected", "Select parameter", choices = var())
   })
   
   output$plot_by_variable <- renderPlot({
-    plot_individual(dd, input$var, cl = input$cl_2, pcl= input$pcl_2)
+    plot_individual(get(input$upload()), get(input$var_selected), cl = input$cl_2, pcl= input$pcl_2)
   })
   
   output$data_output <- renderDataTable(
     #output global results
-    
-    generate_global_estimates(dd, input$cl_3, input$pcl_3)%>%
+    generate_global_estimates(get(input$upload), input$cl_3, input$pcl_3)%>%
       datatable(
       extensions=c("Select", "Buttons"), options = list(
         select = list(style = "os", items = "row"),
@@ -269,7 +287,7 @@ server <- function(input, output, session){
   )
   
   output$plot_by_variable_export <- downloadHandler(
-    plot_individual_export(dd, input$cl_2),
+    plot_individual_export(get(input$upload), input$cl_2),
     
     filename = "MA_Forest_Plots.pdf",
     content = function(file) {

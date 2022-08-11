@@ -1,11 +1,11 @@
 #Example
 #get_variable_names(dd)
+# output a vector of parameter names
 get_variable_names <- function(df){
   variable <- as.character(pull(df, Parameter))
   variable <- unique(variable)
   return(variable)
 }
-
 # this function is used in helper_figure.R
 # generates estimates for each variable for each site
 # generate_var_lists(dd, i_level = 0.95)
