@@ -18,10 +18,10 @@ generate_var_lists <- function(df, i_level){
   p <- max(order)
   
   for(i in 1:p){
-    dd_i <- dd[dd$order == i, ] # data of the corresponding parameter
-    estimate <- dd_i[, "Estimate"]
-    sderr <- dd_i[, "StdErr"]
-    site <- dd_i[, "site"]
+    df_i <- df[df$order == i, ] # data of the corresponding parameter
+    estimate <- df_i[, "Estimate"]
+    sderr <- df_i[, "StdErr"]
+    site <- df_i[, "site"]
     keep <- (sderr != 0) & (!is.na(estimate)) # check if stderr = 0 or estimate = NA, exclude
     # random effect meta-analysis by the Hartung-Knapp-Sidik-Jonkman method
     # https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/1471-2288-14-25

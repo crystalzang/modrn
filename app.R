@@ -20,9 +20,6 @@ if(!require(metafor)) install.packages("metafor", repos = "http://cran.us.r-proj
 if(!require(vroom)) install.packages("vroom", repos = "http://cran.us.r-project.org")
 
 
-# Data
-dd <- read_rds("data/data.rds")
-#dd <- read_csv("data/data.csv")
 
 # example upload data
 site <- c("A", "A", "A", "B", "B", "B")
@@ -112,9 +109,10 @@ ui <-
                                           tableOutput('example_table')
                                           ),
                                    column(8,
-                                          h3(strong("Upload Your Data"), align = ""),
+                                          h3(strong("Upload Your Data"), align = "")
+                                           ,
                                           fileInput(inputId="upload", label="Upload a file", multiple = F, accept = ".csv"), #other tabs can access this data using inputId
-                                           dataTableOutput("data_upload")
+                                          dataTableOutput("data_upload")
                                          )
                                      
                                    )
@@ -250,10 +248,11 @@ server <- function(input, output, session){
     data()
   )
   
-
+  # instead of using get(input$upload()), we use data()
+  
   # 1. global plot 
   output$globalPlot <- renderPlotly({
-    plot_global(get(input$upload), input$cl, input$pcl, input$scale)    
+    plot_global(data(), input$cl, input$pcl, input$scale)    
   })
   
   # 2.individual plot depend on the selected parameter
@@ -261,9 +260,8 @@ server <- function(input, output, session){
   # variable selection from the uploaded dataset
   # in the rest of server, var() can be used as a function that returns a vector of parameter names 
   var <- reactive({
-    data <- get(input$upload)
     # get_variable_names(mydata)
-    get_variable_names(data)
+    get_variable_names(data())
   })
   
   output$param_selection <- renderUI({
@@ -271,7 +269,7 @@ server <- function(input, output, session){
   })
   
   output$plot_by_variable <- renderPlot({
-    plot_individual(get(input$upload()), get(input$var_selected), cl = input$cl_2, pcl= input$pcl_2)
+    plot_individual(data(), get(input$var_selected), cl = input$cl_2, pcl= input$pcl_2)
   })
   
   output$data_output <- renderDataTable(

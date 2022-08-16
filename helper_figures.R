@@ -42,6 +42,7 @@ plot_individual <- function(data, var, cl, pcl){
           level = pcl, annotate = TRUE) # in this way, the CI will be 95%, the PI will be 90% [this is a work around]
   abline(h = 1)
 }
+
 #plot_individual_export(dd, 0.95)
 plot_individual_export <- function(data, cl){
   pdf(file = paste0("www/MA_Forest_Plots.pdf"), # START saving plots in a pdf file
@@ -85,7 +86,7 @@ plot_global <- function(data, cl, pcl, scale){
   ggplot_data_long$est <- str_replace_all(ggplot_data_long$est, "[[:punct:]]", "")
  
 
-  order <- get_variable_names(dd)
+  order <- get_variable_names(data)
   f <- factor(ggplot_data_long$Parameter, level = order)
   ggplot_data_long$Parameter <- fct_rev(f)
   #levels(ggplot_data_long$Parameter)
