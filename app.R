@@ -61,7 +61,7 @@ ui <-
                                       produce pooled estimates. The required inputs are the site-specific estimates 
                                       for a single or multiple parameters, their standard errors, and columns that 
                                       identifies the site and the parameter. A sample input is provided under the 
-                                      XXX tab. Important outputs include the pooled estimates along with confidence
+                                      data tab. Important outputs include the pooled estimates along with confidence
                                       intervals (CI). In addition, it generates prediction intervals (PI) around the 
                                       pooled estimates, which represent the interval we would expect to contain the 
                                       estimates if the analysis had been conducted with a different sample of states. 
@@ -70,7 +70,7 @@ ui <-
                                       
 
 
-                                      h2("Title Three"),
+                                      h2("Programming"),
                                       p("The calculation is based on the R package metafor (Viechtbauer, 2010). Plots are produced in R using ggplot2. "),
 
                                       h2("Legal Disclaimer"),
