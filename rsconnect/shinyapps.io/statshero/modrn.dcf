@@ -1,0 +1,13 @@
+name: modrn
+title: modrn
+username:
+account: statshero
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6798542
+bundleId: 6210511
+url: https://statshero.shinyapps.io/modrn/
+when: 1660746151.02983
+lastSyncTime: 1660746151.02984
+asMultiple: FALSE
+asStatic: FALSE

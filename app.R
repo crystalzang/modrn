@@ -269,12 +269,12 @@ server <- function(input, output, session){
   })
   
   output$plot_by_variable <- renderPlot({
-    plot_individual(data(), get(input$var_selected), cl = input$cl_2, pcl= input$pcl_2)
+    plot_individual(data(), input$var_selected, cl = input$cl_2, pcl= input$pcl_2)
   })
   
   output$data_output <- renderDataTable(
     #output global results
-    generate_global_estimates(get(input$upload), input$cl_3, input$pcl_3)%>%
+    generate_global_estimates(data(), input$cl_3, input$pcl_3)%>%
       datatable(
       extensions=c("Select", "Buttons"), options = list(
         select = list(style = "os", items = "row"),
@@ -285,7 +285,7 @@ server <- function(input, output, session){
   )
   
   output$plot_by_variable_export <- downloadHandler(
-    plot_individual_export(get(input$upload), input$cl_2),
+    plot_individual_export(data(), input$cl_2),
     
     filename = "MA_Forest_Plots.pdf",
     content = function(file) {
