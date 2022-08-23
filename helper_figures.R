@@ -44,8 +44,8 @@ plot_individual <- function(data, var, cl, pcl){
 }
 
 #plot_individual_export(dd, 0.95)
-plot_individual_export <- function(data, cl){
-  pdf(file = paste0("www/MA_Forest_Plots.pdf"), # START saving plots in a pdf file
+plot_individual_export <- function(data, cl, filename){
+  pdf(file = paste0("www/", filename,sep=""), # START saving plots in a pdf file
       width = 8.5, # width of the plot in inches
       height = 11) # height of the plot in inches
   par(mfrow=c(6, 3), # plotting options: each page has 6 rows and 3 columns, 18 sub-figures on a page; 
@@ -125,16 +125,16 @@ plot_global <- function(data, cl, pcl, scale){
     ) 
   if(scale == "logOR"){
     p <- p +
-      scale_x_continuous(
-        breaks = seq(-2, 2, by = 0.5)
-      )+
+     # scale_x_continuous(
+     #   breaks = seq(-2, 2, by = 0.5)
+      #)+
       labs(x = "Estimate(log odds ratio)")
   }else if (scale == "OR"){
     p <- p + 
-      #coord_trans(x = "log2")+
-      scale_x_continuous(
-          limits = c(0, 10), # make the x range to be wider on the left side
-                         breaks = seq(0, 8, by = 1))+
+      coord_trans(x = "log2")+
+      scale_x_continuous(limits = c(0.0001, 8), # make the x range to be wider on the left side
+                         breaks = c(0.1, 0.2, 0.5, 1, 2, 4, 6),
+                         label = c("0.1", "0.2", "0.5", "1", "2", "4", "6")) +
       labs(x = "Estimate(odds ratio)")
   }
   

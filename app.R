@@ -1,3 +1,16 @@
+
+#Edit of shiny app 
+#Radio button for plotting scale 
+
+#Log odds ratio: original
+#Odds ratio: exponential of the original scale 
+
+#If you use logistic regression model, the original estimate would be log odds ratio
+
+#ggplot edit for exponentiated scale: use corrd_trans(x=“log2”)
+
+
+
 if(!require(shiny)) install.packages("shiny", repos = "http://cran.us.r-project.org")
 if(!require(shinythemes)) install.packages("shinythemes", repos = "http://cran.us.r-project.org")
 if(!require(rsconnect)) install.packages("rsconnect", repos = "http://cran.us.r-project.org")
@@ -34,6 +47,16 @@ source("helper_data_prep.R")
 
 
 
+data <- read_csv("data/data.csv")
+
+data_toy <- data%>%
+  filter(order  < 5)%>%
+  mutate(Parameter = if_else(Parameter == "param_1", "intercept", 
+                             if_else(Parameter == "param_2", "age",
+                                     if_else(Parameter == "param_3", "race_nonwhite",
+                                             if_else(Parameter == "param_4", "sex", Parameter)))))
+
+
 
 
 
@@ -49,12 +72,12 @@ ui <-
                  
                  # Overview -----------------------------------------------------------
                  tabPanel("Overview", value = "overview",
-                          fluidRow(style = "margin: 2px;",
-                                   align = "center",
+                          fluidRow(style = "margin-left: 200px; margin-right: 200px;",
+                                   align = "left",
                                    br(""),
                                    h1(strong("Online Random Effect Meta-Analysis Calculator"),
                                       br(""),
-                                      h2("Background"),
+                                      h2("Background",align = "center"),
                                       p("This R Shiny online calculator performs a random effects meta-analysis using 
                                       the Hartung-Knapp-Sidik-Jonkman method and provide convenient visualization and 
                                       downloadable output summaries. Estimates from individual sites are combined to 
@@ -66,14 +89,14 @@ ui <-
                                       pooled estimates, which represent the interval we would expect to contain the 
                                       estimates if the analysis had been conducted with a different sample of states. 
                                       The confidence level of the CI and PI can be separately specified and modified 
-                                      via slider controls. "),
+                                      via slider controls. ", style = "font-size:17px;"),
                                       
 
 
-                                      h2("Programming"),
-                                      p("The calculation is based on the R package metafor (Viechtbauer, 2010). Plots are produced in R using ggplot2. "),
+                                      h2("Programming",align = "center"),
+                                      p("The calculation is based on the R package metafor (Viechtbauer, 2010). Plots are produced in R using ggplot2. ", style = "font-size:17px;"),
 
-                                      h2("Legal Disclaimer"),
+                                      h2("Legal Disclaimer",align = "center"),
                                       p("The online meta-analysis calculator is strictly a research tool.
                                         Our team has made every attempt to ensure the accuracy and reliability
                                         of the information provided by this software. However, the information 
@@ -83,7 +106,7 @@ ui <-
                                         by this software. No warranties, promises and/or representations of any 
                                         kind, expressed or implied, are given as to the nature, standard, accuracy 
                                         or otherwise of the information provided by the software nor to the suitability
-                                        or otherwise of the information to your particular circumstances."),
+                                        or otherwise of the information to your particular circumstances.", style = "font-size:17px;"),
                                       br()
                                    )
                           ),
@@ -97,21 +120,27 @@ ui <-
                           #          h1(strong("Data"), align = "center"),
                           #          p("", style = "padding-top: 10px;")
                           #         ),
-                          fluidRow(style = "margin: 6px",
+                          fluidRow(style = "margin-left: 100px; margin-right: 100px;",
                                    column(4, h3(strong("Example Data"), align = ""),
-                                          p("In your uploaded data, please the following format:"),
+                                          p("In your uploaded data, please the following format:", style = "font-size:17px;"),
                                           tags$ul(
-                                            tags$li("site: indicator for the center/state where the data was originally collected."), 
-                                            tags$li("Parameter: predictors for the outcome"), 
-                                            tags$li("Estimate: estimate for the outcome in log odds ratio"),
-                                            tags$li("StdErr: standard error of the estimate")
+                                            tags$li("site: indicator for the center/state where the data was originally collected.", style = "font-size:17px;"), 
+                                            tags$li("Parameter: predictors for the outcome", style = "font-size:17px;"), 
+                                            tags$li("Estimate: estimate for the outcome in log odds ratio", style = "font-size:17px;"),
+                                            tags$li("StdErr: standard error of the estimate", style = "font-size:17px;")
                                           ),
                                           tableOutput('example_table')
                                           ),
                                    column(8,
-                                          h3(strong("Upload Your Data"), align = "")
-                                           ,
-                                          fileInput(inputId="upload", label="Upload a file", multiple = F, accept = ".csv"), #other tabs can access this data using inputId
+                                          h3(strong("Upload Your Data"), align = ""),
+                                          radioButtons("data_option" , "Use Toy Data",
+                                                        c("Upload your data" = "data_user",
+                                                                   "Toy Data" = "data_app")),
+                                          conditionalPanel(
+                                            condition = "input.data_option == 'data_user'",
+                                            fileInput(inputId="upload", label="Upload a file", multiple = F, accept = ".csv") #other tabs can access this data using inputId
+                                      
+                                          ),
                                           dataTableOutput("data_upload")
                                          )
                                      
@@ -120,7 +149,7 @@ ui <-
                  
                  # Modeling -----------------------------------------------------------
                  tabPanel("Model Output", value = "data",
-                          fluidRow(style = "margin: 6px;",
+                          fluidRow(style = "margin-left: 100px; margin-right: 100px;",
                                    h1(strong("Modeling"), align = "center"),
                                    p("", style = "padding-top:10px;"),
                                    tabsetPanel(
@@ -147,7 +176,7 @@ ui <-
                                                               plotlyOutput(outputId = "globalPlot", height = 600)
                                                               )
                                                        
-                                                      ),
+                                                      )
                                            
                                               
                                               ),
@@ -195,6 +224,7 @@ ui <-
                                                               p("Use Shift/Ctrl + Click for selecting/deselect multiple columns"),
                                                              # selectInput("dataset", "Select a dataoutput",ls("package:datasets")),
                                                              dataTableOutput("data_output")
+                                                        
                                                        )
                                                        
                                               )
@@ -205,17 +235,15 @@ ui <-
                  
                  
                  # Contact -----------------------------------------------------------
-                 tabPanel("Contact", value = "contact",
-                          fluidRow(style = "margin-left: 100px; margin-right: 100px;",
+                 tabPanel("Contact", value = "contact", 
+                          fluidRow(style = "margin-left: 200px; margin-right: 200px;",
                                    h1(strong("Contact"), align = "center"),
                                    br(),
-                                   h4(strong("University of Pittsburgh School of Public Health")),
-                                   p("The", a(href = 'https://biocomplexity.virginia.edu/social-decision-analytics/dspg-program', 'Data Science for the Public Good (DSPG) Young Scholars program', target = "_blank"), 
-                                     "is a summer immersive program held at the", a(href = 'https://biocomplexity.virginia.edu/social-decision-analytics', 'University of Virginia Biocomplexity Institute’s Social and Decision Analytics division (SDAD).'), 
-                                     "In its seventh year, the program engages students from across the country to work together on projects that address state, federal, and local government challenges around 
-                                     critical social issues relevant in the world today. DSPG young scholars conduct research at the intersection of statistics, computation, and the social sciences 
-                                     to determine how information generated within every community can be leveraged to improve quality of life and inform public policy. For more information on program 
-                                     highlights, how to apply, and our annual symposium, please visit", a(href = 'https://biocomplexity.virginia.edu/social-decision-analytics/dspg-program', 'the official Biocomplexity DSPG website.', target = "_blank")),
+                                   h3(strong("University of Pittsburgh School of Public Health")),
+                                   p("This project is inspired by", a(href = "https://academyhealth.org/about/programs/medicaid-outcomes-distributed-research-network-modrn", "The Medicaid Outcomes Distributed Research Network (MODRN)", target = "_blank") 
+                                     ),
+                                   p("This website is hosted on", a(href = 'https://github.com/crystalzang/modrn', 'GitHub, an open source sharing platform.', target = "_blank")
+                                     ),
                                    p("", style = "padding-top:10px;")
                           )
                 ))
@@ -245,14 +273,23 @@ server <- function(input, output, session){
   
   # preview uploaded dataset
   output$data_upload <- renderDataTable(
-    data()
+    
+    if (input$data_option == "data_user"){
+      data()
+    }else{
+       data_toy
+    }
   )
   
   # instead of using get(input$upload()), we use data()
   
   # 1. global plot 
   output$globalPlot <- renderPlotly({
-    plot_global(data(), input$cl, input$pcl, input$scale)    
+    if (input$data_option == "data_user"){
+      plot_global(data(), input$cl, input$pcl, input$scale) 
+    }else{
+    plot_global(data_toy, input$cl, input$pcl, input$scale) 
+    }
   })
   
   # 2.individual plot depend on the selected parameter
@@ -261,7 +298,13 @@ server <- function(input, output, session){
   # in the rest of server, var() can be used as a function that returns a vector of parameter names 
   var <- reactive({
     # get_variable_names(mydata)
-    get_variable_names(data())
+    if (input$data_option == "data_user"){
+      get_variable_names(data())
+    }else{
+      get_variable_names(data_toy)
+    }
+    
+    
   })
   
   output$param_selection <- renderUI({
@@ -269,30 +312,57 @@ server <- function(input, output, session){
   })
   
   output$plot_by_variable <- renderPlot({
-    plot_individual(data(), input$var_selected, cl = input$cl_2, pcl= input$pcl_2)
+    
+    if (input$data_option == "data_user"){
+      plot_individual(data(), input$var_selected, cl = input$cl_2, pcl= input$pcl_2)
+    }else{
+      plot_individual(data_toy, input$var_selected, cl = input$cl_2, pcl= input$pcl_2)
+    }
   })
   
   output$data_output <- renderDataTable(
     #output global results
-    generate_global_estimates(data(), input$cl_3, input$pcl_3)%>%
-      datatable(
-      extensions=c("Select", "Buttons"), options = list(
-        select = list(style = "os", items = "row"),
-        dom = "Bfrtip",
-        buttons = c("selectAll","selectNone", "selectColumns","copy", "csv", "excel", "pdf", "print")
-      )
-    )
+    if (input$data_option == "data_user"){
+      generate_global_estimates(data(), input$cl_3, input$pcl_3)%>%
+        datatable(
+          extensions=c("Select", "Buttons"), options = list(
+            select = list(style = "os", items = "row"),
+            dom = "Bfrtip",
+            buttons = c("selectAll","selectNone", "selectColumns","copy", "csv", "excel", "pdf", "print")
+          )
+        )
+    }else{
+      generate_global_estimates(data_toy, input$cl_3, input$pcl_3)%>%
+        datatable(
+          extensions=c("Select", "Buttons"), options = list(
+            select = list(style = "os", items = "row"),
+            dom = "Bfrtip",
+            buttons = c("selectAll","selectNone", "selectColumns","copy", "csv", "excel", "pdf", "print")
+          )
+        )
+    },
+    
+   
   )
   
   output$plot_by_variable_export <- downloadHandler(
-    plot_individual_export(data(), input$cl_2),
+    filename = paste("MA_Forest_Plots_",  Sys.Date(),".pdf", sep=""),
     
-    filename = "MA_Forest_Plots.pdf",
+    if (input$data_option == "data_user"){
+      plot_individual_export(data(), input$cl_2, filename)    
+      }else{
+        plot_individual_export(data_toy, input$cl_2,filename)    
+    },
+    
     content = function(file) {
-      file.copy("www/MA_Forest_Plots.pdf", file)
+      file.copy(paste("www/", filename, sep=""), file)
     }
+    
+   
   )
   
+
+
 }
 
 shinyApp(ui = ui, server = server)
