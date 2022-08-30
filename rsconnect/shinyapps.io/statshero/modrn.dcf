@@ -5,9 +5,10 @@ account: statshero
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 6798542
-bundleId: 6210511
+bundleId: 6252693
 url: https://statshero.shinyapps.io/modrn/
-when: 1660746151.02983
-lastSyncTime: 1660746151.02984
+when: 1661883471.24473
+lastSyncTime: 1661883471.24474
 asMultiple: FALSE
 asStatic: FALSE
+ignoredFiles: www/MA_Forest_Plots_2022-08-22.pdf

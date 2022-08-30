@@ -37,8 +37,8 @@ if(!require(vroom)) install.packages("vroom", repos = "http://cran.us.r-project.
 # example upload data
 site <- c("A", "A", "A", "B", "B", "B")
 Parameter <- c("Var1", "Var2", "Var3", "Var1", "Var2", "Var3")
-Estimate <- c(1, 0,0,0,1,1)
-StdErr <- c(0.1, 1.2, -2.2, 0.02, -0.43, 0.03)
+Estimate <- c(1.1, 3.2,3.3,4.1,3.2,2.3)
+StdErr <- c(0.1, 1.2, 2.2, 0.02, 0.43, 0.03)
 dt <- as.data.frame(cbind(site, Parameter, Estimate, StdErr))
 
 source("helper_figures.R")
@@ -168,7 +168,7 @@ ui <-
                                                               ),
                                                               # Select type of trend to plot
                                                               selectInput(inputId = "scale", label = strong("Plotting Scale"),
-                                                                          choices = c( "Odds Ratio" = "OR", "Log Odds Ratio"= "logOR"),
+                                                                          choices = c("Original Scale"= "logOR", "Exponentiated" = "OR"),
                                                                           selected = "logOR")
                                                              ),
                                                        column(8, 
@@ -222,6 +222,7 @@ ui <-
                                                        column(8, 
                                                               h3(strong("Export Model Output")),
                                                               p("Use Shift/Ctrl + Click for selecting/deselect multiple columns"),
+                                                              p("Numbers are rounded to 4 decimal places, except for Cochran Q p-value"),
                                                              # selectInput("dataset", "Select a dataoutput",ls("package:datasets")),
                                                              dataTableOutput("data_output")
                                                         

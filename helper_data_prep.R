@@ -1,5 +1,5 @@
 #Example
-#get_variable_names(dd)
+#get_variable_names(data_toy)
 # output a vector of parameter names
 get_variable_names <- function(df){
   variable <- as.character(pull(df, Parameter))
@@ -8,7 +8,7 @@ get_variable_names <- function(df){
 }
 # this function is used in helper_figure.R
 # generates estimates for each variable for each site
-# generate_var_lists(dd, i_level = 0.95)
+# generate_var_lists(data_toy, i_level = 0.95)
 generate_var_lists <- function(df, i_level){
   out_ls <- list()
   dat_ls <- list()
@@ -74,7 +74,7 @@ rename_site <- function(data, site){
   return(data)
 }
 
-#dd_out <- generate_global_estimates(dd, 0.95, 0.90)
+#dd_out <- generate_global_estimates(data_toy, 0.95, 0.90)
 generate_global_estimates <- function(data, cl, pcl){
   info_columns <- unique(data[, c( "order", "Parameter")]) # save the info columns
   
@@ -123,42 +123,45 @@ generate_global_estimates <- function(data, cl, pcl){
     result_pci_ub <- c(result_pci_ub, metahksj_pred$cr.ub)
   }
   
+  A <- function(x) round(x, digits = 4)
+  
   ### output dataframe: outdata
   outdata <- data.frame(info_columns, 
                         estimate = result_est,
                         se = result_se,
                         ci_lb = result_ci_lb,
                         ci_ub = result_ci_ub,
-                        OR_estimate = exp(result_est),
-                        OR_ci_lb = exp(result_ci_lb),
-                        OR_ci_ub = exp(result_ci_ub),
+                       # OR_estimate = exp(result_est),
+                       # OR_ci_lb = exp(result_ci_lb),
+                       # OR_ci_ub = exp(result_ci_ub),
                         pvalue = result_pval, 
                         tau = sqrt(result_tau2),
                         pci_lb = result_pci_lb,
                         pci_ub = result_pci_ub,
-                        OR_pci_lb = exp(result_pci_lb),
-                        OR_pci_ub = exp(result_pci_ub),
+                       # OR_pci_lb = exp(result_pci_lb),
+                        #OR_pci_ub = exp(result_pci_ub),
                         Isquare = result_isq, CochranQ = result_Q, 
                         CochranQpvalue = result_Qp, 
                         range_lb = result_est_min,
-                        range_ub = result_est_max)
-  
+                        range_ub = result_est_max)%>%
+    mutate(across(c(3:12, 14:15), A))
+
   rownames(outdata) <- NULL
   return(outdata)
 }
 
 add_desc <- function(data){
   # descriptions
-  data$description <- paste0("(global log OR ", round(data$estimate, 2), ", ",
+  data$description <- paste0("(global estimate - original scale", round(data$estimate, 2), ", ",
                                 "95% CI: ", round(data$ci_lb, 2), "-", round(data$ci_ub, 2),
                                 ", p", ifelse(data$pvalue < 0.0001, "<0.0001", paste0("=", signif(data$pvalue, 2))), ", ", 
                                 "90% PI: ", round(data$pci_lb, 2), "-", round(data$pci_ub, 2),
                                 ")")
   
-  data$description_OR <- paste0("(global OR ", round(data$OR_estimate, 2), ", ",
-                                   "95% CI: ", round(data$OR_ci_lb, 2), "-", round(data$OR_ci_ub, 2),
+  data$description_OR <- paste0("(global estimate - exponentiated", round(exp(data$estimate), 2), ", ",
+                                   "95% CI: ", round(exp(data$ci_lb), 2), "-", round(exp(data$ci_ub), 2),
                                    ", p", ifelse(data$pvalue < 0.0001, "<0.0001", paste0("=", signif(data$pvalue, 2))), ", ", 
-                                   "90% PI: ", round(data$OR_pci_lb, 2), "-", round(data$OR_pci_ub, 2),
+                                   "90% PI: ", round(exp(data$pci_lb), 2), "-", round(exp(data$pci_ub), 2),
                                    ")")
   return(data)
 }
