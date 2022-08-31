@@ -240,12 +240,14 @@ ui <-
                           fluidRow(style = "margin-left: 200px; margin-right: 200px;",
                                    h1(strong("Contact"), align = "center"),
                                    br(),
-                                   h3(strong("University of Pittsburgh School of Public Health")),
-                                   p("This project is inspired by", a(href = "https://academyhealth.org/about/programs/medicaid-outcomes-distributed-research-network-modrn", "The Medicaid Outcomes Distributed Research Network (MODRN)", target = "_blank") 
+                                   p("This project is inspired by", a(href = "https://academyhealth.org/about/programs/medicaid-outcomes-distributed-research-network-modrn", "The Medicaid Outcomes Distributed Research Network (MODRN)", target = "_blank") , style = "font-size:17px;"
                                      ),
-                                   p("This website is hosted on", a(href = 'https://github.com/crystalzang/modrn', 'GitHub, an open source sharing platform.', target = "_blank")
+                                   p("This website is hosted on GitHub, an open source sharing platform. If you have any question regarding this app, please go to our", a(href = 'https://github.com/crystalzang/modrn', 'GitHub, an open source sharing platform.', target = "_blank"), "and submit your question under 'Issues' tab. ", style = "font-size:17px;"
                                      ),
-                                   p("", style = "padding-top:10px;")
+                                   h2("Contributor"),
+                                   p(strong("Lu Tang"), ": Assistant Professor, University of Pittsburgh School of Public Health,", a(href = "https://sites.pitt.edu/~lutang/", "website", target = "_blank"),style = "font-size:17px;"),
+                                   p(strong("Crystal Zang"), ": Ph.D. student, University of Pittsburgh School of Public Health,", a(href = "https://github.com/crystalzang", "GitHub", target = "_blank"), style = "font-size:17px;"),
+                                  
                           )
                 ))
 
