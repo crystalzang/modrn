@@ -191,12 +191,12 @@ ui <-
                                                               #             choices = XXX, #todo
                                                               #             selected = "param_1"),
                                                               uiOutput("param_selection"), #widget for parameter selection
-                                                              sliderInput(inputId = "cl_2",  #confidence level of estimator
-                                                                          label = "Confidence Level",
+                                                              sliderInput(inputId = "cl_ind",  #confidence level of estimator
+                                                                          label = "Confidence Level for Individual Site", 
                                                                           min = 0.8, max = 0.975, value = 0.95, width = '300px'
                                                               ),
-                                                              sliderInput(inputId = "pcl_2", #prediction confidence level
-                                                                          label = "Prediction Confidence Level",
+                                                              sliderInput(inputId = "cl_global", #prediction confidence level
+                                                                          label = "Confidence Level for Global Estimate", 
                                                                           min = 0.8, max = 0.975, value = 0.90, width = '300px'
                                                               )
                                                           ),
@@ -245,8 +245,9 @@ ui <-
                                    p("This website is hosted on GitHub, an open source sharing platform. If you have any question regarding this app, please go to our", a(href = 'https://github.com/crystalzang/modrn', 'GitHub, an open source sharing platform.', target = "_blank"), "and submit your question under 'Issues' tab. ", style = "font-size:17px;"
                                      ),
                                    h2("Contributor"),
-                                   p(strong("Lu Tang"), ": Assistant Professor, University of Pittsburgh School of Public Health,", a(href = "https://sites.pitt.edu/~lutang/", "website", target = "_blank"),style = "font-size:17px;"),
                                    p(strong("Crystal Zang"), ": Ph.D. student, University of Pittsburgh School of Public Health,", a(href = "https://github.com/crystalzang", "GitHub", target = "_blank"), style = "font-size:17px;"),
+                                   p(strong("Lu Tang"), ": Assistant Professor, University of Pittsburgh School of Public Health,", a(href = "https://sites.pitt.edu/~lutang/", "website", target = "_blank"),style = "font-size:17px;")
+                                   
                                   
                           )
                 ))
@@ -315,11 +316,13 @@ server <- function(input, output, session){
   })
   
   output$plot_by_variable <- renderPlot({
-    
+    filename = paste("MA_Forest_Plots_",  Sys.Date(),".pdf", sep="")
     if (input$data_option == "data_user"){
-      plot_individual(data(), input$var_selected, cl = input$cl_2, pcl= input$pcl_2)
+      plot_individual(data(), input$var_selected, cl_ind = input$cl_ind, cl_global= input$cl_global)
+      plot_individual_export(data(), input$cl_ind,input$cl_global, filename)    
+      
     }else{
-      plot_individual(data_toy, input$var_selected, cl = input$cl_2, pcl= input$pcl_2)
+      plot_individual(data_toy, input$var_selected, cl_ind = input$cl_ind, cl_global= input$cl_global)
     }
   })
   
@@ -349,23 +352,17 @@ server <- function(input, output, session){
   )
   
   output$plot_by_variable_export <- downloadHandler(
-    filename = paste("MA_Forest_Plots_",  Sys.Date(),".pdf", sep=""),
-    
+
     if (input$data_option == "data_user"){
-      plot_individual_export(data(), input$cl_2, filename)    
+      file_directory = paste("www/MA_Forest_Plots_",  Sys.Date(),".pdf", sep="")
       }else{
-        plot_individual_export(data_toy, input$cl_2,filename)    
-    },
-    
+        file_directory = "www/MA_Forest_Plots_toy.pdf"
+      },
     content = function(file) {
-      file.copy(paste("www/", filename, sep=""), file)
+      file.copy(file_directory, file)
     }
-    
    
   )
-  
-
-
 }
 
 shinyApp(ui = ui, server = server)

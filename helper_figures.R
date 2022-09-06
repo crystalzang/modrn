@@ -1,9 +1,9 @@
 #Example: 
-#plot_individual(dd,"param_1", 0.95)
-# data <- dd
-# var = "param_1"
-# cl = pcl = 0.95
-plot_individual <- function(data, var, cl, pcl){
+#plot_individual(data,"param_1", 0.95, 0.95,0.95)
+# cl_ind: individual confidence interval
+# cl_global: global confidence interval
+
+plot_individual <- function(data, var, cl_ind, cl_global){
   variable <- as.character(pull(data, Parameter))
 
   order <- unique(pull(data, order)[!is.na(pull(data, order))])
@@ -17,7 +17,7 @@ plot_individual <- function(data, var, cl, pcl){
     select(order)%>%
     pull()%>%
     as.numeric()
-  out <- generate_var_lists(data, cl)
+  out <- generate_var_lists(data, cl_ind)
   metahksj <- out$metahksj_ls[[index]]
   
   forest(metahksj, 
@@ -30,7 +30,7 @@ plot_individual <- function(data, var, cl, pcl){
         # xlab = dd_i[, "Parameter"][1], # x-axis label
          xlab = var,
          psize = 0.8, # dot size
-         level = cl, # CI level
+         level = cl_ind, # individual CI level
          refline = 0, # vertical reference line
          pch = 19, # dot shape/type
          # transf = exp, # whether transformation of scale should be done
@@ -39,12 +39,13 @@ plot_individual <- function(data, var, cl, pcl){
          top = 2) # Plots 95% CI and 95% PI
   addpoly(metahksj, row = 0.5, cex = 0.65, mlab = "Global", addcred = TRUE, 
           # transf = exp, # whether transformation of scale should be done
-          level = pcl, annotate = TRUE) # in this way, the CI will be 95%, the PI will be 90% [this is a work around]
+          level = cl_global, annotate = TRUE) # global confidence level
   abline(h = 1)
 }
 
-#plot_individual_export(dd, 0.95)
-plot_individual_export <- function(data, cl, filename){
+#plot_individual_export(data, 0.95, 0.95,"plot_test.pdf")
+#TODO: export user input file collapsed, possibly the pdf wasn't saved into www/ folder. 
+plot_individual_export <- function(data, cl_ind, cl_global, filename){
   pdf(file = paste0("www/", filename,sep=""), # START saving plots in a pdf file
       width = 8.5, # width of the plot in inches
       height = 11) # height of the plot in inches
@@ -54,7 +55,7 @@ plot_individual_export <- function(data, cl, filename){
   variable <- get_variable_names(data)
   
   for(var in variable){
-    plot_individual(data,var, cl)
+    plot_individual(data, var, cl_ind, cl_global)
   }
   dev.off() # END saving plots in a pdf file
   par(mfrow=c(1,1)) # reset plotting options
@@ -99,15 +100,16 @@ plot_global <- function(data, cl, pcl, scale){
       )+
       labs(x = "Estimate(original scale)")
   }else{ # exponentiated
+    
     p <- data_estimates%>%
       ggplot(aes(y = Parameter,x = exp(estimate),  group=1, ci_lb=exp(ci_lb), ci_ub=exp(ci_ub),  pci_lb=exp(pci_lb), pci_ub=exp(pci_ub) , pvalue= pvalue)) +
       geom_errorbarh(height = 0.0, size = 1.8, aes(xmin = exp(pci_lb), xmax = exp(pci_ub)), colour="grey88", alpha = 1) + #grey88
       geom_errorbarh(height = 0.0, size = 0.8, aes(xmin = exp(ci_lb), xmax = exp(ci_ub)), colour="grey22", alpha = 0.5) + #grey22
       geom_point(colour = "black", size = 1.8, alpha = 1) +
       labs(x = "Estimate(exponentiated)")+
-      coord_trans(x = "log2") +
-     scale_x_continuous( limits = c(0.1, 8),
-                         breaks = c(0.2, 0.5 , 1, 2, 4, 6),
+    #  coord_trans(x = "log2") +
+     scale_x_continuous( limits = c(0.1, 6), #TODO: change the lower bound to be dependent on the min(pci_lb) and upper bound to be dependent on max(pci_ub)
+                         breaks = c(0.2, 0.5 , 1, 2, 4, 6), #TODO: 
                          label =  c("0.2", "0.5", "1", "2", "4", "6"))+
       geom_vline(xintercept = 1, linetype = "dashed", color = "blue", alpha = 0.5)+
       theme_bw() + 
